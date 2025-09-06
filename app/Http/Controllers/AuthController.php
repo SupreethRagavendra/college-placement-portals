@@ -3,63 +3,103 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\SupabaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
-use Carbon\Carbon;
 
 class AuthController extends Controller
 {
+    protected $supabaseService;
+
+    public function __construct(SupabaseService $supabaseService)
+    {
+        $this->supabaseService = $supabaseService;
+    }
+
+    /**
+     * Show registration form
+     */
     public function showRegister(): View
     {
         return view('auth.register');
     }
 
+    /**
+     * Handle user registration
+     */
     public function register(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:admin,student'],
+            'role' => ['required', 'in:student,admin'],
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
-        ]);
+        try {
+            // Create user in local database
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role' => $validated['role'],
+                'is_verified' => true, // No email verification required
+                'is_approved' => $validated['role'] === 'admin' ? true : false, // Auto-approve admins
+                'email_verified_at' => now(),
+                'status' => $validated['role'] === 'admin' ? 'approved' : 'pending',
+            ]);
 
-        $token = bin2hex(random_bytes(32));
-        DB::table('email_verification_tokens')->insert([
-            'user_id' => $user->id,
-            'token' => $token,
-            'expires_at' => Carbon::now()->addHour(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+            // Try to create user in Supabase (optional - for future use)
+            try {
+                $supabaseResponse = $this->supabaseService->signUp(
+                    $validated['email'],
+                    $validated['password'],
+                    [
+                        'name' => $validated['name'],
+                        'role' => $validated['role']
+                    ]
+                );
 
-        $signedUrl = URL::temporarySignedRoute('verify.email.custom', now()->addHour(), ['token' => $token]);
+                if (isset($supabaseResponse['id'])) {
+                    $user->update(['supabase_id' => $supabaseResponse['id']]);
+                }
+            } catch (\Exception $e) {
+                // Log error but don't fail registration
+                \Log::warning('Failed to create user in Supabase: ' . $e->getMessage());
+            }
 
-        Mail::send('emails.verify', ['user' => $user, 'url' => $signedUrl], function ($message) use ($user) {
-            $message->to($user->email)->subject('Verify your email');
-        });
+            if ($validated['role'] === 'admin') {
+                $user->update([
+                    'admin_approved_at' => now(),
+                ]);
+                
+                return redirect()->route('login')
+                    ->with('status', 'Admin account created successfully! You can now login.');
+            } else {
+                return redirect()->route('login')
+                    ->with('status', 'Registration successful! Your account is pending admin approval.');
+            }
 
-        return redirect()->route('verification.notice.custom')->with('status', 'verification-link-sent');
+        } catch (\Exception $e) {
+            return back()->withErrors(['email' => $e->getMessage()]);
+        }
     }
 
+    /**
+     * Show login form
+     */
     public function showLogin(): View
     {
         return view('auth.login');
     }
 
+    /**
+     * Handle user login
+     */
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
@@ -67,67 +107,53 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            return back()->withErrors(['email' => trans('auth.failed')])->withInput();
+        // Use Laravel's built-in authentication instead of Supabase
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $user = Auth::user();
+            
+            // Check approval status
+            if ($user->canLogin()) {
+                $request->session()->regenerate();
+                return $this->redirectToDashboard();
+            } elseif ($user->isPendingApproval()) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return back()->withErrors(['email' => 'Your account is pending admin approval.']);
+            } elseif ($user->isRejected()) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return back()->withErrors(['email' => 'Your account has been rejected. Please contact support.']);
+            }
         }
 
-        $request->session()->regenerate();
-
-        if (is_null(Auth::user()->email_verified_at)) {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            return redirect()->route('verification.notice.custom')->withErrors(['email' => 'Please verify your email before login.']);
-        }
-
-        return $this->redirectToDashboard();
+        return back()->withErrors(['email' => 'Invalid credentials.']);
     }
 
-    public function verifyEmail(Request $request, string $token): RedirectResponse
-    {
-        if (! $request->hasValidSignature()) {
-            return redirect()->route('login')->withErrors(['email' => 'Invalid or expired verification link.']);
-        }
-
-        $record = DB::table('email_verification_tokens')
-            ->where('token', $token)
-            ->where('expires_at', '>', now())
-            ->first();
-
-        if (! $record) {
-            return redirect()->route('login')->withErrors(['email' => 'Invalid or expired verification link.']);
-        }
-
-        $user = User::find($record->user_id);
-        if (! $user) {
-            return redirect()->route('login')->withErrors(['email' => 'Invalid verification request.']);
-        }
-
-        if (is_null($user->email_verified_at)) {
-            $user->forceFill(['email_verified_at' => now()])->save();
-        }
-
-        DB::table('email_verification_tokens')->where('token', $token)->delete();
-
-        return redirect()->route('login')->with('status', 'Email verified successfully. You can now login.');
-    }
-
+    /**
+     * Handle logout
+     */
     public function logout(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+        
         return redirect()->route('landing');
     }
 
+    /**
+     * Redirect to appropriate dashboard
+     */
     private function redirectToDashboard(): RedirectResponse
     {
-        $role = Auth::user()->role;
-        if ($role === 'admin') {
+        $user = Auth::user();
+        
+        if ($user->isAdmin()) {
             return redirect()->route('admin.dashboard');
+        } else {
+            return redirect()->route('student.dashboard');
         }
-        return redirect()->route('student.dashboard');
     }
 }
-
-
