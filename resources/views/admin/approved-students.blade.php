@@ -225,7 +225,7 @@ function viewStudentDetails(studentId) {
 }
 
 function revokeStudent(studentId, studentName) {
-    if (confirm(`Are you sure you want to revoke access for ${studentName}? This will remove their account permanently.`)) {
+    if (confirm(`Are you sure you want to revoke access for ${studentName}? This will completely delete their account and free up their email for future registrations.`)) {
         const form = document.getElementById('revokeForm');
         form.action = `/admin/students/${studentId}/revoke`;
         form.submit();

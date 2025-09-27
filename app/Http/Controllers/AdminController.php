@@ -408,7 +408,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Revoke access for an approved student (mark as rejected)
+     * Revoke access for an approved student (completely delete the record)
      */
     public function revokeStudent(Request $request, $id): RedirectResponse
     {
@@ -429,20 +429,33 @@ class AdminController extends Controller
 
         DB::beginTransaction();
         try {
-            // Revoke access by marking as rejected
-            $student->update([
-                'is_approved' => false,
-                'admin_rejected_at' => now(),
-                'status' => 'rejected',
-                'rejection_reason' => 'Access revoked by administrator'
-            ]);
+            $studentName = $student->name;
+            $studentEmail = $student->email;
+            $supabaseUserId = $student->supabase_user_id ?? null;
+            
+            // Send revocation email before deleting the record
+            $this->sendStatusEmailAsync($student, 'rejected', 'Access revoked by administrator');
+            
+            // Delete all related student data first
+            \App\Models\StudentResult::where('student_id', $id)->delete();
+            
+            // If using Supabase authentication, also delete from Supabase
+            if ($supabaseUserId) {
+                try {
+                    $this->supabaseService->deleteUser($supabaseUserId);
+                    \Log::info("Deleted Supabase user: {$supabaseUserId} for {$studentEmail}");
+                } catch (\Exception $e) {
+                    \Log::warning("Failed to delete Supabase user {$supabaseUserId}: " . $e->getMessage());
+                    // Continue with local deletion even if Supabase deletion fails
+                }
+            }
+            
+            // Completely delete the student record to free up the email
+            $student->delete();
 
             DB::commit();
 
-            // Send rejection email asynchronously (non-blocking)
-            $this->sendStatusEmailAsync($student, 'rejected', 'Access revoked by administrator');
-
-            return back()->with('status', "Access for {$student->name} has been revoked successfully.");
+            return back()->with('status', "Access for {$studentName} ({$studentEmail}) has been revoked and the account has been completely removed. The email is now available for new registrations.");
 
         } catch (\Exception $e) {
             DB::rollBack();
