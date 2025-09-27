@@ -132,8 +132,23 @@ class StudentController extends Controller
 
     public function categories()
     {
-        // Use Supabase categories or static
-        $categories = [ (object)['id' => 1, 'name' => 'Aptitude'], (object)['id' => 2, 'name' => 'Technical'] ];
+        // Get active assessments grouped by category
+        $assessments = \App\Models\Assessment::active()
+            ->withCount('questions')
+            ->orderBy('category')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Group by category
+        $categories = $assessments->groupBy('category')->map(function ($assessments, $category) {
+            return (object) [
+                'id' => $category === 'Aptitude' ? 1 : 2,
+                'name' => $category,
+                'assessments' => $assessments,
+                'total_questions' => $assessments->sum('questions_count')
+            ];
+        })->values();
+        
         return view('student.categories', ['categories' => $categories]);
     }
 
@@ -144,43 +159,41 @@ class StudentController extends Controller
 
         $userId = Auth::id();
 
-        // Create a test row in Supabase
-        $testRow = $this->supabase->insertInto('tests', [
-            'student_id' => $userId,
-            'category' => $categoryName,
-            'attempted_at' => now()->toIso8601String(),
-            'score' => 0,
-            'time_taken' => 0,
-        ]);
-        $testId = $testRow[0]['id'] ?? null;
+        // Get the first active assessment for this category
+        $assessment = \App\Models\Assessment::active()
+            ->where('category', $categoryName)
+            ->with('questions')
+            ->first();
 
-        // Load questions by category from Supabase
-        $questionsArr = $this->supabase->selectFrom('questions', ['category' => 'eq.' . $categoryName], [
-            'order' => ['column' => 'id', 'asc' => true],
-            'limit' => 50,
-        ]);
-        $questions = collect($questionsArr)->map(function ($q) {
-            return (object) [
-                'id' => $q['id'] ?? null,
-                'question' => $q['question_text'] ?? '',
-                'options' => json_encode([$q['option_a'] ?? '', $q['option_b'] ?? '', $q['option_c'] ?? '', $q['option_d'] ?? '']),
-            ];
-        });
-
-        // Load timer minutes
-        $minutes = 30;
-        try {
-            $settings = $this->supabase->selectFrom('test_settings', ['category' => 'eq.' . $categoryName], ['limit' => 1]);
-            $minutes = (int) (($settings[0]['minutes'] ?? 30));
-        } catch (\Throwable $e) {
-            $minutes = 30; // default if table missing
+        if (!$assessment) {
+            return redirect()->route('student.categories')
+                ->withErrors(['error' => 'No active assessment found for this category.']);
         }
+
+        // Get questions for this assessment
+        $questions = $assessment->questions()->where('is_active', true)->get();
+
+        if ($questions->isEmpty()) {
+            return redirect()->route('student.categories')
+                ->withErrors(['error' => 'No questions available for this assessment.']);
+        }
+
+        // Create a student result record
+        $studentResult = \App\Models\StudentResult::create([
+            'student_id' => $userId,
+            'assessment_id' => $assessment->id,
+            'score' => 0,
+            'total_questions' => $questions->count(),
+            'time_taken' => 0,
+            'submitted_at' => now(),
+        ]);
 
         return view('student.test', [
             'category' => (object) ['id' => $categoryId, 'name' => $categoryName],
+            'assessment' => $assessment,
             'questions' => $questions,
-            'test_id' => $testId,
-            'minutes' => $minutes,
+            'test_id' => $studentResult->id,
+            'minutes' => $assessment->time_limit,
         ]);
     }
 
@@ -188,7 +201,6 @@ class StudentController extends Controller
     {
         $request->validate([
             'test_id' => 'required|integer',
-            'category_id' => 'required|integer',
             'answers' => 'required|array',
         ]);
 
@@ -196,38 +208,36 @@ class StudentController extends Controller
         $testId = (int) $request->input('test_id');
         $answers = $request->input('answers');
 
-        // Fetch correct answers from Supabase
-        $questionIds = array_map('intval', array_keys($answers));
-        $correctRows = [];
-        foreach (array_chunk($questionIds, 50) as $chunk) {
-            $ids = implode(',', $chunk);
-            $rows = $this->supabase->selectFrom('questions', [ 'id' => 'in.(' . $ids . ')' ], ['select' => 'id,correct_answer']);
-            $correctRows = array_merge($correctRows, $rows);
+        // Get the student result
+        $studentResult = \App\Models\StudentResult::where('id', $testId)
+            ->where('student_id', $userId)
+            ->first();
+
+        if (!$studentResult) {
+            return redirect()->route('student.categories')
+                ->withErrors(['error' => 'Test not found.']);
         }
-        $byId = [];
-        foreach ($correctRows as $r) { $byId[(int)($r['id'] ?? 0)] = (string)($r['correct_answer'] ?? ''); }
+
+        // Get the assessment and questions
+        $assessment = $studentResult->assessment;
+        $questions = $assessment->questions()->whereIn('id', array_keys($answers))->get();
 
         $score = 0;
         $total = count($answers);
-        foreach ($answers as $qid => $opt) {
-            $corr = $byId[(int)$qid] ?? null;
-            if ($corr !== null && (string)$corr === (string)$opt) { $score++; }
+
+        // Calculate score
+        foreach ($answers as $questionId => $selectedOption) {
+            $question = $questions->find($questionId);
+            if ($question && $question->correct_option == (int)$selectedOption) {
+                $score++;
+            }
         }
 
-        // Save per-answer rows
-        foreach ($answers as $qid => $opt) {
-            $this->supabase->insertInto('test_answers', [
-                'test_id' => $testId,
-                'question_id' => (int)$qid,
-                'student_answer' => (string)$opt,
-                'is_correct' => (string)($byId[(int)$qid] ?? '') === (string)$opt,
-            ]);
-        }
-
-        // Update test summary
-        $this->supabase->updateById('tests', $testId, [
+        // Update student result
+        $studentResult->update([
             'score' => $score,
             'time_taken' => (int) $request->input('time_taken', 0),
+            'submitted_at' => now(),
         ]);
 
         return redirect()->route('student.results', ['id' => $testId]);
@@ -236,24 +246,38 @@ class StudentController extends Controller
     public function results($id)
     {
         $userId = Auth::id();
-        $test = $this->supabase->selectFrom('tests', ['id' => 'eq.' . (int)$id], ['limit' => 1]);
-        $row = $test[0] ?? null;
-        $result = (object) [
-            'test_id' => $row['id'] ?? null,
-            'user_id' => $userId,
-            'score' => (int)($row['score'] ?? 0),
-            'total' => (int) ($this->supabase->selectFrom('test_answers', ['test_id' => 'eq.' . ((int)$id)], ['select' => 'id','limit' => 1000]) ? count($this->supabase->selectFrom('test_answers', ['test_id' => 'eq.' . ((int)$id)], ['select' => 'id','limit' => 1000])) : 0),
-            'created_at' => $row['attempted_at'] ?? null,
-        ];
+        
+        // Get the student result
+        $studentResult = \App\Models\StudentResult::where('id', $id)
+            ->where('student_id', $userId)
+            ->with('assessment')
+            ->first();
 
-        $all = $this->supabase->selectFrom('tests', [], ['select' => 'score,time_taken','limit' => 1000]);
-        $peerAvg = 0;
-        if (!empty($all)) {
-            $scores = array_map(fn($r) => (float)($r['score'] ?? 0), $all);
-            $peerAvg = count($scores) ? array_sum($scores) / count($scores) : 0;
+        if (!$studentResult) {
+            return redirect()->route('student.categories')
+                ->withErrors(['error' => 'Test result not found.']);
         }
 
-        $analysis = [];
+        $result = (object) [
+            'test_id' => $studentResult->id,
+            'user_id' => $userId,
+            'score' => $studentResult->score,
+            'total' => $studentResult->total_questions,
+            'time_taken' => $studentResult->time_taken,
+            'created_at' => $studentResult->submitted_at,
+            'assessment_name' => $studentResult->assessment->name,
+            'category' => $studentResult->assessment->category,
+        ];
+
+        // Calculate peer average
+        $peerAvg = \App\Models\StudentResult::where('assessment_id', $studentResult->assessment_id)
+            ->where('id', '!=', $studentResult->id)
+            ->avg('score') ?? 0;
+
+        $analysis = [
+            'percentage' => $studentResult->total_questions > 0 ? round(($studentResult->score / $studentResult->total_questions) * 100, 2) : 0,
+            'peer_average' => round($peerAvg, 2),
+        ];
 
         return view('student.results', compact('result', 'analysis', 'peerAvg'));
     }

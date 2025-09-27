@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('questions', function (Blueprint $table) {
-            $table->boolean('is_active')->default(true)->after('correct_option');
+        Schema::table('users', function (Blueprint $table) {
+            $table->text('rejection_reason')->nullable()->after('admin_rejected_at');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('questions', function (Blueprint $table) {
-            $table->dropColumn('is_active');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('rejection_reason');
         });
     }
 };

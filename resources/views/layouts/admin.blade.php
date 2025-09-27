@@ -28,11 +28,14 @@
                         <h4 class="text-white mb-4"><i class="fas fa-graduation-cap me-2"></i>Admin Panel</h4>
                         <nav class="nav flex-column">
                             <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
-                            <a class="nav-link {{ request()->is('admin/assessments*') ? 'active' : '' }}" href="{{ url('/admin/assessments') }}"><i class="fas fa-clipboard-list me-2"></i>Assessments</a>
-                            <a class="nav-link {{ request()->is('admin/reports*') ? 'active' : '' }}" href="{{ url('/admin/reports') }}"><i class="fas fa-chart-line me-2"></i>Reports</a>
                             <a class="nav-link {{ request()->is('admin/students/pending') ? 'active' : '' }}" href="{{ route('admin.pending-students') }}"><i class="fas fa-clock me-2"></i>Pending Students</a>
                             <a class="nav-link {{ request()->is('admin/students/approved') ? 'active' : '' }}" href="{{ route('admin.approved-students') }}"><i class="fas fa-check-circle me-2"></i>Approved Students</a>
                             <a class="nav-link {{ request()->is('admin/students/rejected') ? 'active' : '' }}" href="{{ route('admin.rejected-students') }}"><i class="fas fa-times-circle me-2"></i>Rejected Students</a>
+                            <hr class="text-white-50">
+                            <a class="nav-link {{ request()->is('admin/assessments*') ? 'active' : '' }}" href="{{ route('admin.assessments.index') }}"><i class="fas fa-clipboard-list me-2"></i>Assessments</a>
+                            <a class="nav-link {{ request()->is('admin/questions*') ? 'active' : '' }}" href="{{ route('admin.questions.index') }}"><i class="fas fa-question-circle me-2"></i>Questions</a>
+                            <a class="nav-link {{ request()->routeIs('admin.reports.student-performance') ? 'active' : '' }}" href="{{ route('admin.reports.student-performance') }}"><i class="fas fa-user-graduate me-2"></i>Student Progress</a>
+                            <a class="nav-link {{ request()->is('admin/reports*') && !request()->routeIs('admin.reports.student-performance') ? 'active' : '' }}" href="{{ route('admin.reports.index') }}"><i class="fas fa-chart-line me-2"></i>Reports</a>
                             <hr class="text-white-50">
                             <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
                         </nav>

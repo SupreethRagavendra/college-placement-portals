@@ -104,6 +104,16 @@
                             <a class="nav-link" href="{{ route('admin.rejected-students') }}">
                                 <i class="fas fa-times-circle me-2"></i>Rejected Students
                             </a>
+                            <hr class="text-white-50">
+                            <a class="nav-link" href="{{ route('admin.assessments.index') }}">
+                                <i class="fas fa-clipboard-list me-2"></i>Assessments
+                            </a>
+                            <a class="nav-link" href="{{ route('admin.questions.index') }}">
+                                <i class="fas fa-question-circle me-2"></i>Questions
+                            </a>
+                            <a class="nav-link" href="{{ route('admin.reports.student-performance') }}">
+                                <i class="fas fa-user-graduate me-2"></i>Student Progress
+                            </a>
                             <a class="nav-link" href="{{ url('/admin/reports') }}">
                                 <i class="fas fa-chart-line me-2"></i>Reports
                             </a>
@@ -230,6 +240,70 @@
                         <!-- Recent Activities -->
                         <div class="row">
                             <div class="col-md-8">
+                                <!-- Recent Assessments -->
+                                <div class="card mb-4">
+                                    <div class="card-header d-flex align-items-center justify-content-between">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-clipboard-list me-2"></i>Recent Assessments
+                                        </h5>
+                                        <a href="{{ route('admin.assessments.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        @if($recentAssessments->count() > 0)
+                                            <div class="table-responsive">
+                                                <table class="table table-striped align-middle mb-0">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Assessment</th>
+                                                            <th>Category</th>
+                                                            <th>Questions</th>
+                                                            <th>Attempts</th>
+                                                            <th>Status</th>
+                                                            <th class="text-end">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($recentAssessments as $assessment)
+                                                            <tr>
+                                                                <td>
+                                                                    <div>
+                                                                        <strong>{{ $assessment->title }}</strong>
+                                                                        @if($assessment->description)
+                                                                            <br><small class="text-muted">{{ Str::limit($assessment->description, 50) }}</small>
+                                                                        @endif
+                                                                    </div>
+                                                                </td>
+                                                                <td><span class="badge bg-{{ $assessment->category === 'Aptitude' ? 'primary' : 'success' }}">{{ $assessment->category }}</span></td>
+                                                                <td><span class="badge bg-info">{{ $assessment->questions_count }}</span></td>
+                                                                <td><span class="badge bg-secondary">{{ $assessment->student_results_count }}</span></td>
+                                                                <td>
+                                                                    @if($assessment->is_active)
+                                                                        <span class="badge bg-success">Active</span>
+                                                                    @else
+                                                                        <span class="badge bg-secondary">Inactive</span>
+                                                                    @endif
+                                                                </td>
+                                                                <td class="text-end">
+                                                                    <div class="btn-group btn-group-sm">
+                                                                        <a href="{{ route('admin.assessments.questions', $assessment) }}" class="btn btn-outline-primary btn-sm">Questions</a>
+                                                                        <a href="{{ route('admin.assessments.edit', $assessment) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        @else
+                                            <div class="text-center py-4">
+                                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                                <h5>No Assessments Yet</h5>
+                                                <p class="text-muted">Create your first assessment to get started!</p>
+                                                <a href="{{ route('admin.assessments.create') }}" class="btn btn-primary">Create Assessment</a>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
                                 <div class="card">
                                     <div class="card-header d-flex align-items-center justify-content-between">
                                         <h5 class="card-title mb-0">
@@ -305,7 +379,20 @@
                                             <a href="{{ route('admin.rejected-students') }}" class="btn btn-danger btn-quick">
                                                 <i class="fas fa-times-circle me-2"></i>View Rejected
                                             </a>
-                                            <a href="{{ url('/admin/reports') }}" class="btn btn-outline-primary btn-quick">
+                                            <hr class="my-2">
+                                            <a href="{{ route('admin.assessments.create') }}" class="btn btn-primary btn-quick">
+                                                <i class="fas fa-plus me-2"></i>Create Assessment
+                                            </a>
+                                            <a href="{{ route('admin.assessments.index') }}" class="btn btn-outline-primary btn-quick">
+                                                <i class="fas fa-clipboard-list me-2"></i>Manage Assessments
+                                            </a>
+                                            <a href="{{ route('admin.questions.create') }}" class="btn btn-outline-success btn-quick">
+                                                <i class="fas fa-question-circle me-2"></i>Add Questions
+                                            </a>
+                                            <a href="{{ route('admin.reports.student-performance') }}" class="btn btn-outline-info btn-quick">
+                                                <i class="fas fa-user-graduate me-2"></i>Student Progress
+                                            </a>
+                                            <a href="{{ url('/admin/reports') }}" class="btn btn-outline-secondary btn-quick">
                                                 <i class="fas fa-chart-line me-2"></i>View Reports
                                             </a>
                                         </div>

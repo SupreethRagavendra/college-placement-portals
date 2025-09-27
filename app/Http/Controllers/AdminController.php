@@ -192,6 +192,9 @@ class AdminController extends Controller
 
             DB::commit();
 
+            // Send approval email asynchronously (non-blocking)
+            $this->sendStatusEmailAsync($student, 'approved');
+
             return back()->with('status', "Student {$student->name} has been approved successfully.");
 
         } catch (\Exception $e) {
@@ -227,22 +230,19 @@ class AdminController extends Controller
 
         DB::beginTransaction();
         try {
-            // Delete from Supabase if they have a supabase_id
-            if ($student->supabase_id) {
-                try {
-                    $this->supabaseService->deleteUser($student->supabase_id);
-                } catch (\Exception $e) {
-                    // Log error but don't fail the transaction
-                    \Log::warning("Failed to delete user from Supabase: " . $e->getMessage());
-                }
-            }
-
-            // Delete from local database
-            $student->delete();
+            // Mark student as rejected instead of deleting
+            $student->update([
+                'admin_rejected_at' => now(),
+                'status' => 'rejected',
+                'rejection_reason' => $request->rejection_reason
+            ]);
 
             DB::commit();
 
-            return back()->with('status', "Student {$student->name} has been rejected and removed from the system.");
+            // Send rejection email asynchronously (non-blocking)
+            $this->sendStatusEmailAsync($student, 'rejected', $request->rejection_reason);
+
+            return back()->with('status', "Student {$student->name} has been rejected.");
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -273,21 +273,70 @@ class AdminController extends Controller
 
         DB::beginTransaction();
         try {
+            $approvedCount = 0;
             foreach ($students as $student) {
                 $student->update([
                     'is_approved' => true,
                     'admin_approved_at' => now(),
                     'status' => 'approved'
                 ]);
+                
+                // Send approval email asynchronously for each student
+                $this->sendStatusEmailAsync($student, 'approved');
+                $approvedCount++;
             }
 
             DB::commit();
 
-            return back()->with('status', "Successfully approved {$students->count()} students.");
+            return back()->with('status', "Successfully approved {$approvedCount} students.");
 
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Failed to approve students. Please try again.']);
+        }
+    }
+
+    /**
+     * Bulk reject students
+     */
+    public function bulkReject(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'student_ids' => 'required|array',
+            'student_ids.*' => 'exists:users,id'
+        ]);
+
+        $students = User::whereIn('id', $request->student_ids)
+            ->where('role', 'student')
+            ->whereNull('admin_rejected_at')
+            ->get();
+
+        if ($students->isEmpty()) {
+            return back()->withErrors(['error' => 'No valid students found for rejection.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            $rejectedCount = 0;
+            foreach ($students as $student) {
+                // Mark student as rejected instead of deleting
+                $student->update([
+                    'admin_rejected_at' => now(),
+                    'status' => 'rejected'
+                ]);
+                
+                // Send rejection email asynchronously for each student
+                $this->sendStatusEmailAsync($student, 'rejected');
+                $rejectedCount++;
+            }
+
+            DB::commit();
+
+            return back()->with('status', "Successfully rejected {$rejectedCount} students.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Failed to reject students. Please try again.']);
         }
     }
 
@@ -310,10 +359,139 @@ class AdminController extends Controller
             'email' => $student->email,
             'created_at' => $student->created_at->format('M d, Y H:i'),
             'email_verified_at' => $student->email_verified_at ? $student->email_verified_at->format('M d, Y H:i') : null,
+            'admin_rejected_at' => $student->admin_rejected_at ? $student->admin_rejected_at->format('M d, Y H:i') : null,
+            'rejection_reason' => $student->rejection_reason,
             'status' => $student->status,
             'is_pending' => $student->isPendingApproval(),
             'is_approved' => $student->isApproved(),
             'is_rejected' => $student->isRejected(),
         ]);
+    }
+
+    /**
+     * Restore a rejected student back to pending status
+     */
+    public function restoreStudent(Request $request, $id): RedirectResponse
+    {
+        // Check if user is authenticated and is admin
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return redirect()->route('login')->withErrors(['error' => 'Unauthorized access.']);
+        }
+
+        $student = User::where('id', $id)
+            ->where('role', 'student')
+            ->whereNotNull('admin_rejected_at')
+            ->first();
+
+        if (!$student) {
+            return back()->withErrors(['error' => 'Student not found or not rejected.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Restore student to pending status
+            $student->update([
+                'admin_rejected_at' => null,
+                'rejection_reason' => null,
+                'status' => 'pending',
+                'is_approved' => false
+            ]);
+
+            DB::commit();
+
+            return back()->with('status', "Student {$student->name} has been restored to pending status.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Failed to restore student. Please try again.']);
+        }
+    }
+
+    /**
+     * Revoke access for an approved student (mark as rejected)
+     */
+    public function revokeStudent(Request $request, $id): RedirectResponse
+    {
+        // Check if user is authenticated and is admin
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return redirect()->route('login')->withErrors(['error' => 'Unauthorized access.']);
+        }
+
+        $student = User::where('id', $id)
+            ->where('role', 'student')
+            ->where('is_approved', true)
+            ->whereNull('admin_rejected_at')
+            ->first();
+
+        if (!$student) {
+            return back()->withErrors(['error' => 'Student not found or already processed.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Revoke access by marking as rejected
+            $student->update([
+                'is_approved' => false,
+                'admin_rejected_at' => now(),
+                'status' => 'rejected',
+                'rejection_reason' => 'Access revoked by administrator'
+            ]);
+
+            DB::commit();
+
+            // Send rejection email asynchronously (non-blocking)
+            $this->sendStatusEmailAsync($student, 'rejected', 'Access revoked by administrator');
+
+            return back()->with('status', "Access for {$student->name} has been revoked successfully.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Failed to revoke access. Please try again.']);
+        }
+    }
+
+    /**
+     * Send status email asynchronously to student
+     */
+    private function sendStatusEmailAsync(User $student, string $status, ?string $rejectionReason = null): void
+    {
+        try {
+            // Send email notification asynchronously
+            $promise = $this->supabaseService->sendStatusEmailAsync(
+                $student->email,
+                $student->name,
+                $status,
+                $rejectionReason
+            );
+
+            // Handle the promise completion (optional - for logging)
+            if ($promise) {
+                $promise->then(
+                    function ($response) use ($student, $status) {
+                        \Log::info("Status email sent successfully", [
+                            'student_email' => $student->email,
+                            'status' => $status,
+                            'timestamp' => now()
+                        ]);
+                    },
+                    function ($exception) use ($student, $status) {
+                        \Log::error("Failed to send status email", [
+                            'student_email' => $student->email,
+                            'status' => $status,
+                            'error' => $exception->getMessage(),
+                            'timestamp' => now()
+                        ]);
+                    }
+                );
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the main operation
+            \Log::error("Error initiating status email", [
+                'student_email' => $student->email,
+                'status' => $status,
+                'error' => $e->getMessage(),
+                'timestamp' => now()
+            ]);
+        }
     }
 }

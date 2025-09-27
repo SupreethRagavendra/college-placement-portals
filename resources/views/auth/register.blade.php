@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Register - College Placement Portal</title>
+    <title>Student Registration - College Placement Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -98,18 +98,19 @@
             <div class="col-md-6 col-lg-5">
                 <div class="auth-card">
                     <div class="auth-header">
-                        <i class="fas fa-user-plus fa-3x mb-3"></i>
-                        <h2 class="mb-0">Create Account</h2>
+                        <i class="fas fa-graduation-cap fa-3x mb-3"></i>
+                        <h2 class="mb-0">Student Registration</h2>
                         <p class="mb-0">Join our placement training program</p>
                     </div>
                     <div class="auth-body">
                         <!-- Registration Info -->
                         <div class="alert alert-info" role="alert">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Registration Process:</strong>
+                            <strong>Student Registration:</strong>
                             <ul class="mb-0 mt-2">
-                                <li>Students: Admin approval required after registration</li>
-                                <li>Admins: Can login immediately after registration</li>
+                                <li>Your account will require admin approval</li>
+                                <li>You'll receive an email notification once approved</li>
+                                <li>After approval, you can access the student dashboard</li>
                             </ul>
                         </div>
 
@@ -154,7 +155,7 @@
                             </div>
 
                             <!-- Password -->
-                            <div class="mb-3">
+                            <div class="mb-4">
                                 <label for="password" class="form-label">
                                     <i class="fas fa-lock me-2"></i>Password
                                 </label>
@@ -166,20 +167,6 @@
                                        autocomplete="new-password"
                                        placeholder="Create a strong password">
                                 @error('password')
-                                    <div class="text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <!-- Role -->
-                            <div class="mb-3">
-                                <label for="role" class="form-label">
-                                    <i class="fas fa-user-tag me-2"></i>Role
-                                </label>
-                                <select id="role" name="role" class="form-control @error('role') is-invalid @enderror" required>
-                                    <option value="student" {{ old('role') === 'student' ? 'selected' : '' }}>Student</option>
-                                    <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin</option>
-                                </select>
-                                @error('role')
                                     <div class="text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -198,10 +185,13 @@
                                        placeholder="Confirm your password">
                             </div>
 
+                            <!-- Hidden role field -->
+                            <input type="hidden" name="role" value="student">
+
                             <!-- Submit Button -->
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-user-plus me-2"></i>Create Account
+                                    <i class="fas fa-user-plus me-2"></i>Register as Student
                                 </button>
                             </div>
 

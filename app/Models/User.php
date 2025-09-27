@@ -29,6 +29,7 @@ class User extends Authenticatable
         'admin_approved_at',
         'admin_rejected_at',
         'status',
+        'rejection_reason',
     ];
 
     /**
@@ -128,7 +129,8 @@ class User extends Authenticatable
     {
         return $query->where('role', 'student')
                     ->where('is_verified', true)
-                    ->where('is_approved', false);
+                    ->where('is_approved', false)
+                    ->whereNull('admin_rejected_at');
     }
 
     /**

@@ -221,7 +221,7 @@
                                 <p class="mb-0">
                                     Don't have an account? 
                                     <a href="{{ route('register') }}" class="auth-link">
-                                        <i class="fas fa-user-plus me-1"></i>Create one here
+                                        <i class="fas fa-user-plus me-1"></i>Register as Student
                                     </a>
                                 </p>
                             </div>

@@ -4,9 +4,9 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0">Pending Students</h1>
+    <h1 class="h3 mb-0">Pending Student Approvals</h1>
     <div class="badge bg-warning text-dark fs-6">
-        {{ $students->total() }} pending approval{{ $students->total() !== 1 ? 's' : '' }}
+        {{ $pendingStudents->total() }} pending approval{{ $pendingStudents->total() !== 1 ? 's' : '' }}
     </div>
 </div>
 
@@ -29,7 +29,7 @@
         <h5 class="card-title mb-0">
             <i class="fas fa-clock text-warning me-2"></i>Students Awaiting Approval
         </h5>
-        @if($students->count() > 0)
+        @if($pendingStudents->count() > 0)
             <div class="btn-group" role="group">
                 <button type="button" class="btn btn-sm btn-outline-success" onclick="selectAll()">
                     <i class="fas fa-check-square me-1"></i>Select All
@@ -41,7 +41,7 @@
         @endif
     </div>
     <div class="card-body p-0">
-        @if($students->count() > 0)
+        @if($pendingStudents->count() > 0)
             <div class="table-responsive">
                 <table class="table table-striped table-hover align-middle mb-0">
                     <thead class="table-light">
@@ -56,7 +56,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($students as $student)
+                        @foreach($pendingStudents as $student)
                             <tr>
                                 <td>
                                     <input type="checkbox" class="form-check-input student-checkbox" value="{{ $student->id }}">
@@ -108,7 +108,7 @@
                     </tbody>
                 </table>
             </div>
-            @if($students->count() > 1)
+            @if($pendingStudents->count() > 1)
                 <div class="card-footer bg-light">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -136,10 +136,10 @@
             </div>
         @endif
     </div>
-    @if (method_exists($students, 'links') && $students->hasPages())
+    @if (method_exists($pendingStudents, 'links') && $pendingStudents->hasPages())
         <div class="card-footer bg-white">
             <div class="d-flex justify-content-center">
-                {{ $students->links() }}
+                {{ $pendingStudents->links() }}
             </div>
         </div>
     @endif
@@ -307,5 +307,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
-
-

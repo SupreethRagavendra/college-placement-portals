@@ -30,6 +30,8 @@ class AuthController extends Controller
 
     /**
      * Handle user registration
+     * Note: Public registration is for students only.
+     * Admin accounts should be created manually or through a separate admin registration process.
      */
     public function register(Request $request): RedirectResponse
     {
@@ -37,8 +39,11 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:student,admin'],
+            'role' => ['nullable', 'in:student,admin'],
         ]);
+
+        // Default to student role if not provided
+        $role = $validated['role'] ?? 'student';
 
         try {
             // Create user in local database
@@ -46,11 +51,11 @@ class AuthController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'role' => $validated['role'],
+                'role' => $role,
                 'is_verified' => true, // No email verification required
-                'is_approved' => $validated['role'] === 'admin' ? true : false, // Auto-approve admins
+                'is_approved' => $role === 'admin' ? true : false, // Auto-approve admins
                 'email_verified_at' => now(),
-                'status' => $validated['role'] === 'admin' ? 'approved' : 'pending',
+                'status' => $role === 'admin' ? 'approved' : 'pending',
             ]);
 
             // Try to create user in Supabase (optional - for future use)
@@ -60,7 +65,7 @@ class AuthController extends Controller
                     $validated['password'],
                     [
                         'name' => $validated['name'],
-                        'role' => $validated['role']
+                        'role' => $role
                     ]
                 );
 
@@ -72,7 +77,7 @@ class AuthController extends Controller
                 \Log::warning('Failed to create user in Supabase: ' . $e->getMessage());
             }
 
-            if ($validated['role'] === 'admin') {
+            if ($role === 'admin') {
                 $user->update([
                     'admin_approved_at' => now(),
                 ]);
@@ -81,7 +86,7 @@ class AuthController extends Controller
                     ->with('status', 'Admin account created successfully! You can now login.');
             } else {
                 return redirect()->route('login')
-                    ->with('status', 'Registration successful! Your account is pending admin approval.');
+                    ->with('status', 'Student registration successful! Your account is pending admin approval.');
             }
 
         } catch (\Exception $e) {

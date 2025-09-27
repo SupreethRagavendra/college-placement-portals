@@ -106,6 +106,27 @@ class AdminAssessmentController extends Controller
             ->with('status', 'Assessment deleted successfully');
     }
 
+    public function toggleStatus(Request $request, Assessment $assessment)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'is_active' => 'required|boolean'
+        ]);
+
+        $assessment->update([
+            'is_active' => $request->is_active
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Assessment status updated successfully',
+            'is_active' => $assessment->is_active
+        ]);
+    }
+
     public function questions(Assessment $assessment): View
     {
         if (!Auth::check() || !Auth::user()->isAdmin()) {

@@ -99,10 +99,23 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/students/pending', [AdminStudentController::class, 'pending'])->name('admin.pending-students');
     Route::post('/students/{id}/approve', [AdminStudentController::class, 'approve'])->name('admin.approve-student');
     Route::post('/students/{id}/reject', [AdminStudentController::class, 'reject'])->name('admin.reject-student');
+    
+    // Bulk student operations
+    Route::post('/students/bulk-approve', [AdminController::class, 'bulkApprove'])->name('admin.bulk-approve');
+    Route::post('/students/bulk-reject', [AdminController::class, 'bulkReject'])->name('admin.bulk-reject');
+    
+    // Student details and management
+    Route::get('/students/{id}/details', [AdminController::class, 'getStudentDetails'])->name('admin.student-details');
 
     // Student lists (for dashboard links)
     Route::get('/students/approved', [AdminController::class, 'approvedStudents'])->name('admin.approved-students');
     Route::get('/students/rejected', [AdminController::class, 'rejectedStudents'])->name('admin.rejected-students');
+    
+    // Restore rejected student
+    Route::post('/students/{id}/restore', [AdminController::class, 'restoreStudent'])->name('admin.restore-student');
+    
+    // Revoke approved student access
+    Route::delete('/students/{id}/revoke', [AdminController::class, 'revokeStudent'])->name('admin.revoke-student');
 
     // Assessment Management
     Route::resource('assessments', AdminAssessmentController::class)->names([
@@ -114,6 +127,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
         'update' => 'admin.assessments.update',
         'destroy' => 'admin.assessments.destroy',
     ]);
+    
+    // Assessment Status Toggle
+    Route::post('/assessments/{assessment}/toggle-status', [AdminAssessmentController::class, 'toggleStatus'])
+        ->name('admin.assessments.toggle-status');
     
     // Assessment Question Management
     Route::get('/assessments/{assessment}/questions', [AdminAssessmentController::class, 'questions'])

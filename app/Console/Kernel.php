@@ -17,6 +17,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\SetupSupabaseDbTables::class,
         \App\Console\Commands\ClearStudentData::class,
         \App\Console\Commands\DeleteAllStudents::class,
+        \App\Console\Commands\TestEmailNotification::class,
     ];
 
     /**

@@ -20,8 +20,7 @@ class AdminStudentController extends Controller
             abort(403);
         }
 
-        $students = User::where('role', 'student')
-            ->where('is_verified', false)
+        $students = User::pending()
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
@@ -29,7 +28,7 @@ class AdminStudentController extends Controller
     }
 
     /**
-     * Approve student (sets is_verified = true)
+     * Approve student (sets is_approved = true)
      */
     public function approve($id): RedirectResponse
     {
@@ -37,21 +36,25 @@ class AdminStudentController extends Controller
             abort(403);
         }
 
-        $student = User::where('id', $id)->where('role', 'student')->first();
+        $student = User::where('id', $id)
+            ->where('role', 'student')
+            ->where('is_verified', true)
+            ->where('is_approved', false)
+            ->first();
+            
         if (!$student) {
-            return back()->withErrors(['error' => 'Student not found']);
+            return back()->withErrors(['error' => 'Student not found or already processed']);
         }
 
         DB::beginTransaction();
         try {
             $student->update([
-                'is_verified' => true,
                 'is_approved' => true,
                 'admin_approved_at' => now(),
                 'status' => 'approved',
             ]);
             DB::commit();
-            return back()->with('status', 'Student approved');
+            return back()->with('status', "Student {$student->name} has been approved successfully.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Failed to approve student']);
@@ -59,7 +62,7 @@ class AdminStudentController extends Controller
     }
 
     /**
-     * Reject student (delete from DB)
+     * Reject student (mark as rejected)
      */
     public function reject($id): RedirectResponse
     {
@@ -67,15 +70,26 @@ class AdminStudentController extends Controller
             abort(403);
         }
 
-        $student = User::where('id', $id)->where('role', 'student')->first();
+        $student = User::where('id', $id)
+            ->where('role', 'student')
+            ->whereNull('admin_rejected_at')
+            ->first();
+            
         if (!$student) {
-            return back()->withErrors(['error' => 'Student not found']);
+            return back()->withErrors(['error' => 'Student not found or already processed']);
         }
 
+        DB::beginTransaction();
         try {
-            $student->delete();
-            return back()->with('status', 'Student rejected and removed');
+            $studentName = $student->name;
+            $student->update([
+                'admin_rejected_at' => now(),
+                'status' => 'rejected'
+            ]);
+            DB::commit();
+            return back()->with('status', "Student {$studentName} has been rejected.");
         } catch (\Exception $e) {
+            DB::rollBack();
             return back()->withErrors(['error' => 'Failed to reject student']);
         }
     }

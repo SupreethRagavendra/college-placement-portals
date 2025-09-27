@@ -57,7 +57,7 @@
                         <a class="nav-link" href="#about">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('register') }}">Signup</a>
+                        <a class="nav-link" href="{{ route('register') }}">Student Signup</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('login') }}">Login</a>
@@ -76,7 +76,7 @@
                     <p class="lead mb-4">Empowering students with the skills and knowledge needed to excel in their career journey. Join thousands of successful graduates who found their dream jobs through our comprehensive training program.</p>
                     <div class="d-flex gap-3">
                         <a href="{{ route('register') }}" class="btn btn-light btn-custom">
-                            <i class="fas fa-user-plus me-2"></i>Get Started
+                            <i class="fas fa-user-plus me-2"></i>Register as Student
                         </a>
                         <a href="{{ route('login') }}" class="btn btn-outline-light btn-custom">
                             <i class="fas fa-sign-in-alt me-2"></i>Login
@@ -178,7 +178,7 @@
             <h2 class="display-5 fw-bold mb-4">Ready to Start Your Career Journey?</h2>
             <p class="lead mb-4">Join thousands of students who have successfully launched their careers through our platform.</p>
             <a href="{{ route('register') }}" class="btn btn-light btn-custom">
-                <i class="fas fa-rocket me-2"></i>Start Now
+                <i class="fas fa-rocket me-2"></i>Join as Student
             </a>
         </div>
     </section>

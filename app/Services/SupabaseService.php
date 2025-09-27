@@ -4,6 +4,8 @@ namespace App\Services;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Promise\Promise;
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Support\Facades\Log;
 
 class SupabaseService
@@ -333,5 +335,100 @@ class SupabaseService
             Log::error('Supabase UpdateUserPassword Error: ' . $e->getMessage());
             throw new \Exception('Failed to update password: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Call a Supabase Edge Function
+     */
+    public function callFunction(string $functionName, array $payload = [], bool $async = false)
+    {
+        try {
+            $headers = [
+                'apikey' => $this->anonKey,
+                'Authorization' => 'Bearer ' . $this->anonKey,
+                'Content-Type' => 'application/json',
+            ];
+
+            $options = [
+                'headers' => $headers,
+                'json' => $payload,
+                'timeout' => $async ? 5 : 30, // Shorter timeout for async calls
+            ];
+
+            $url = $this->url . '/functions/v1/' . $functionName;
+
+            if ($async) {
+                // Return a promise for async calls
+                return $this->client->postAsync($url, $options);
+            } else {
+                // Synchronous call
+                $response = $this->client->post($url, $options);
+                return json_decode($response->getBody()->getContents(), true);
+            }
+        } catch (RequestException $e) {
+            Log::error('Supabase Edge Function Error: ' . $e->getMessage(), [
+                'function_name' => $functionName,
+                'payload' => $payload,
+                'response_body' => $e->hasResponse() ? $e->getResponse()->getBody()->getContents() : 'No response body',
+                'status_code' => $e->hasResponse() ? $e->getResponse()->getStatusCode() : 'No status code'
+            ]);
+            
+            if ($async) {
+                // For async calls, log error but don't throw exception
+                return null;
+            }
+            
+            throw new \Exception('Edge function call failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send email notification asynchronously
+     */
+    public function sendStatusEmailAsync(string $studentEmail, string $studentName, string $status, ?string $rejectionReason = null): ?PromiseInterface
+    {
+        $payload = [
+            'student_email' => $studentEmail,
+            'student_name' => $studentName,
+            'status' => $status,
+            'college_name' => config('app.name', 'College Placement Portal')
+        ];
+
+        if ($rejectionReason && $status === 'rejected') {
+            $payload['rejection_reason'] = $rejectionReason;
+        }
+
+        Log::info('Sending status email async', [
+            'student_email' => $studentEmail,
+            'status' => $status,
+            'has_rejection_reason' => !empty($rejectionReason)
+        ]);
+
+        return $this->callFunction('send-status-email', $payload, true);
+    }
+
+    /**
+     * Send email notification synchronously (for testing)
+     */
+    public function sendStatusEmail(string $studentEmail, string $studentName, string $status, ?string $rejectionReason = null): array
+    {
+        $payload = [
+            'student_email' => $studentEmail,
+            'student_name' => $studentName,
+            'status' => $status,
+            'college_name' => config('app.name', 'College Placement Portal')
+        ];
+
+        if ($rejectionReason && $status === 'rejected') {
+            $payload['rejection_reason'] = $rejectionReason;
+        }
+
+        Log::info('Sending status email sync', [
+            'student_email' => $studentEmail,
+            'status' => $status,
+            'has_rejection_reason' => !empty($rejectionReason)
+        ]);
+
+        return $this->callFunction('send-status-email', $payload, false);
     }
 }

@@ -1,33 +1,4 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="h4 mb-0">Choose Test Category</h2>
-    </x-slot>
-    <div class="container py-4">
-        <div class="row justify-content-center">
-            <div class="col-12 col-md-8">
-                <div class="row g-3">
-                    @foreach ($categories as $cat)
-                    <div class="col-12 col-md-6">
-                        <div class="card h-100">
-                            <div class="card-body d-flex flex-column justify-content-between">
-                                <div>
-                                    <h5 class="card-title mb-2">{{ $cat->name }}</h5>
-                                    <p class="text-muted mb-0">Start a {{ $cat->name }} test</p>
-                                </div>
-                                <div class="mt-3">
-                                    <a href="{{ route('student.test', ['id' => $cat->id]) }}" class="btn btn-primary">Start</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    </div>
-</x-app-layout>
-
-<x-app-layout>
     <style>
         .hero-dashboard { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 36px 0; position: relative; overflow: hidden; }
         .hero-dashboard .hero-icon { position: absolute; right: -40px; bottom: -20px; font-size: 10rem; opacity: 0.12; }
