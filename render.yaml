@@ -4,17 +4,17 @@ services:
     env: php
     plan: free
     buildCommand: bash render-build.sh
-    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
-    healthCheckPath: /
+    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT --no-reload
+    healthCheckPath: /login
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
         value: true
       - key: APP_URL
-        sync: false
+        value: https://college-placement-portals.onrender.com
       - key: APP_KEY
-        generateValue: true
+        sync: false
       - key: LOG_CHANNEL
         value: stack
       - key: LOG_LEVEL
