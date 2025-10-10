@@ -10,7 +10,7 @@
             <p class="text-muted mb-0">Comprehensive analytics and performance insights</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('admin.reports.export') }}" class="btn btn-outline-primary">
+            <a href="{{ route('admin.reports.export', ['type' => 'all']) }}" class="btn btn-outline-primary">
                 <i class="fas fa-download me-2"></i>Export CSV
             </a>
             <a href="{{ route('admin.reports.student-performance') }}" class="btn btn-primary">
@@ -90,7 +90,6 @@
                                             <td>
                                                 <div>
                                                     <h6 class="mb-0">{{ $assessment['title'] }}</h6>
-                                                    <small class="text-muted">ID: {{ $assessment['id'] }}</small>
                                                 </div>
                                             </td>
                                             <td>
@@ -172,9 +171,6 @@
                         </a>
                         <a href="{{ route('admin.assessments.index') }}" class="btn btn-outline-success">
                             <i class="fas fa-clipboard-list me-2"></i>Manage Assessments
-                        </a>
-                        <a href="{{ route('admin.questions.index') }}" class="btn btn-outline-warning">
-                            <i class="fas fa-question-circle me-2"></i>Manage Questions
                         </a>
                     </div>
                 </div>

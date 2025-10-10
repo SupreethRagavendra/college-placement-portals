@@ -20,20 +20,25 @@ class StudentAssessmentController extends Controller
             abort(403);
         }
 
+        // Optimize with eager loading and selective columns
         $assessments = Assessment::active()
+            ->select('id', 'name', 'description', 'category', 'difficulty_level', 'total_time', 'total_marks', 'pass_percentage', 'is_active', 'created_at')
             ->withCount('questions')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(10);
 
-        // Get user's results for each assessment
+        // Get user's results for each assessment with optimized query
+        $assessmentIds = $assessments->pluck('id');
         $userResults = StudentResult::where('student_id', Auth::id())
+            ->whereIn('assessment_id', $assessmentIds)
+            ->select('id', 'assessment_id', 'score', 'total_questions', 'submitted_at')
             ->get()
             ->keyBy('assessment_id');
 
         return view('student.assessments.index', compact('assessments', 'userResults'));
     }
 
-    public function show(Assessment $assessment): View
+    public function show(Assessment $assessment): View|RedirectResponse
     {
         if (!Auth::check() || !Auth::user()->isStudent()) {
             abort(403);
@@ -43,18 +48,22 @@ class StudentAssessmentController extends Controller
             abort(404, 'Assessment not found or not active');
         }
 
-        // Check if user has already taken this assessment
+        // Check if user has already taken this assessment - optimized query
         $existingResult = StudentResult::where('student_id', Auth::id())
             ->where('assessment_id', $assessment->id)
-            ->first();
+            ->exists();
 
-        if ($existingResult) {
-            return redirect()->route('student.assessment.result', $assessment)
-                ->with('info', 'You have already taken this assessment.');
+        // Only redirect if they've taken it AND multiple attempts are NOT allowed
+        if ($existingResult && !$assessment->allow_multiple_attempts) {
+            return redirect()->route('student.assessments.result', $assessment)
+                ->with('info', 'You have already taken this assessment. Multiple attempts are not allowed.');
         }
 
-        // Get questions for this assessment
-        $questions = $assessment->questions()->active()->get();
+        // Get questions for this assessment with selective columns
+        $questions = $assessment->questions()
+            ->where('is_active', true)
+            ->select('questions.id', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer', 'correct_option', 'time_per_question')
+            ->get();
         
         if ($questions->isEmpty()) {
             return redirect()->route('student.assessments.index')
@@ -67,7 +76,7 @@ class StudentAssessmentController extends Controller
         return view('student.assessments.show', compact('assessment', 'questions'));
     }
 
-    public function start(Assessment $assessment): View
+    public function start(Assessment $assessment): View|RedirectResponse
     {
         if (!Auth::check() || !Auth::user()->isStudent()) {
             abort(403);
@@ -82,13 +91,14 @@ class StudentAssessmentController extends Controller
             ->where('assessment_id', $assessment->id)
             ->first();
 
-        if ($existingResult) {
-            return redirect()->route('student.assessment.result', $assessment)
-                ->with('info', 'You have already taken this assessment.');
+        // Only redirect if they've taken it AND multiple attempts are NOT allowed
+        if ($existingResult && !$assessment->allow_multiple_attempts) {
+            return redirect()->route('student.assessments.result', $assessment)
+                ->with('info', 'You have already taken this assessment. Multiple attempts are not allowed.');
         }
 
         // Get questions for this assessment
-        $questions = $assessment->questions()->active()->get();
+        $questions = $assessment->questions()->where('is_active', true)->get();
         
         if ($questions->isEmpty()) {
             return redirect()->route('student.assessments.index')
@@ -98,7 +108,11 @@ class StudentAssessmentController extends Controller
         // Shuffle questions for randomization
         $questions = $questions->shuffle();
         
-        return view('student.assessments.take', compact('assessment', 'questions'));
+        // Initialize empty variables for the view
+        $existingAnswers = [];
+        $studentAssessment = null;
+        
+        return view('student.assessments.take', compact('assessment', 'questions', 'existingAnswers', 'studentAssessment'));
     }
 
     public function submit(Request $request, Assessment $assessment): RedirectResponse
@@ -116,28 +130,31 @@ class StudentAssessmentController extends Controller
             ->where('assessment_id', $assessment->id)
             ->first();
 
-        if ($existingResult) {
-            return redirect()->route('student.assessment.result', $assessment)
-                ->with('info', 'You have already taken this assessment.');
+        // Only block submission if they've taken it AND multiple attempts are NOT allowed
+        if ($existingResult && !$assessment->allow_multiple_attempts) {
+            return redirect()->route('student.assessments.result', $assessment)
+                ->with('info', 'You have already taken this assessment. Multiple attempts are not allowed.');
         }
-
+        
         $validated = $request->validate([
             'answers' => 'required|array',
             'time_taken' => 'required|integer|min:1',
         ]);
 
         // Get all questions for this assessment
-        $questions = $assessment->questions()->active()->get()->keyBy('id');
+        $questions = $assessment->questions()->where('is_active', true)->get()->keyBy('id');
         $totalQuestions = $questions->count();
         $correctAnswers = 0;
         $userAnswers = [];
 
         // Calculate score
-        foreach ($validated['answers'] as $questionId => $answerIndex) {
+        foreach ($validated['answers'] as $questionId => $answer) {
             $question = $questions->get($questionId);
             if ($question) {
-                $userAnswers[$questionId] = (int)$answerIndex;
-                if ($question->isCorrectAnswer((int)$answerIndex)) {
+                // Store the answer as-is (letter A, B, C, D)
+                $userAnswers[$questionId] = $answer;
+                // Check if correct (the isCorrectAnswer method handles letter comparison)
+                if ($question->isCorrectAnswer($answer)) {
                     $correctAnswers++;
                 }
             }
@@ -154,11 +171,11 @@ class StudentAssessmentController extends Controller
             'submitted_at' => now(),
         ]);
 
-        return redirect()->route('student.assessment.result', $assessment)
+        return redirect()->route('student.assessments.result', $assessment)
             ->with('status', 'Assessment submitted successfully!');
     }
 
-    public function result(Assessment $assessment): View
+    public function result(Assessment $assessment): View|RedirectResponse
     {
         if (!Auth::check() || !Auth::user()->isStudent()) {
             abort(403);
@@ -167,6 +184,7 @@ class StudentAssessmentController extends Controller
         $result = StudentResult::where('student_id', Auth::id())
             ->where('assessment_id', $assessment->id)
             ->with(['assessment', 'student'])
+            ->orderBy('id', 'desc')
             ->first();
 
         if (!$result) {
@@ -177,15 +195,28 @@ class StudentAssessmentController extends Controller
         // Get questions with user answers for detailed review
         $questions = $assessment->questions()->get()->keyBy('id');
         $detailedResults = [];
+        
+        // Ensure answers is an array
+        $answers = is_array($result->answers) ? $result->answers : json_decode($result->answers, true) ?? [];
 
-        foreach ($result->answers as $questionId => $userAnswer) {
+        foreach ($answers as $questionId => $userAnswer) {
+            // Cast questionId to int to ensure proper matching
+            $questionId = (int)$questionId;
             $question = $questions->get($questionId);
             if ($question) {
+                // Get the correct answer as a letter
+                $correctAnswerLetter = $question->correct_answer;
+                if (!$correctAnswerLetter && isset($question->correct_option)) {
+                    // Convert numeric index to letter if needed
+                    $letters = ['A', 'B', 'C', 'D'];
+                    $correctAnswerLetter = $letters[$question->correct_option] ?? 'A';
+                }
+                
                 $detailedResults[] = [
                     'question' => $question,
-                    'user_answer' => $userAnswer,
+                    'user_answer' => $userAnswer,  // This is already a letter (A, B, C, D)
                     'is_correct' => $question->isCorrectAnswer($userAnswer),
-                    'correct_answer' => $question->correct_option,
+                    'correct_answer' => $correctAnswerLetter,  // Now this is also a letter
                 ];
             }
         }
@@ -199,22 +230,28 @@ class StudentAssessmentController extends Controller
             abort(403);
         }
 
-        $results = StudentResult::where('student_id', Auth::id())
-            ->with('assessment')
+        $studentId = Auth::id();
+        
+        // Eager load assessment with selective columns
+        $results = StudentResult::where('student_id', $studentId)
+            ->with(['assessment:id,name,category,difficulty_level'])
+            ->select('id', 'assessment_id', 'score', 'total_questions', 'time_taken', 'submitted_at')
             ->orderBy('submitted_at', 'desc')
             ->paginate(10);
 
-        // Calculate overall statistics
+        // Calculate overall statistics with a single query
+        $statsQuery = StudentResult::where('student_id', $studentId)
+            ->selectRaw('COUNT(*) as total_count')
+            ->selectRaw('AVG((score::float / NULLIF(total_questions, 0)) * 100) as avg_percentage')
+            ->selectRaw('MAX((score::float / NULLIF(total_questions, 0)) * 100) as max_percentage')
+            ->selectRaw('SUM(time_taken) as total_time')
+            ->first();
+        
         $stats = [
-            'total_assessments' => $results->total(),
-            'average_score' => StudentResult::where('student_id', Auth::id())
-                ->selectRaw('AVG((score / total_questions) * 100) as avg_percentage')
-                ->value('avg_percentage') ?? 0,
-            'highest_score' => StudentResult::where('student_id', Auth::id())
-                ->selectRaw('MAX((score / total_questions) * 100) as max_percentage')
-                ->value('max_percentage') ?? 0,
-            'total_time_spent' => StudentResult::where('student_id', Auth::id())
-                ->sum('time_taken'),
+            'total_assessments' => $statsQuery->total_count ?? 0,
+            'average_score' => round($statsQuery->avg_percentage ?? 0, 2),
+            'highest_score' => round($statsQuery->max_percentage ?? 0, 2),
+            'total_time_spent' => $statsQuery->total_time ?? 0,
         ];
 
         return view('student.assessments.history', compact('results', 'stats'));
@@ -238,9 +275,9 @@ class StudentAssessmentController extends Controller
             ->groupBy('assessments.category')
             ->get();
 
-        // Get monthly performance trend
+        // Get monthly performance trend (PostgreSQL compatible)
         $monthlyPerformance = StudentResult::where('student_id', $studentId)
-            ->selectRaw('YEAR(submitted_at) as year, MONTH(submitted_at) as month')
+            ->selectRaw('EXTRACT(YEAR FROM submitted_at) as year, EXTRACT(MONTH FROM submitted_at) as month')
             ->selectRaw('AVG((score / total_questions) * 100) as avg_percentage')
             ->selectRaw('COUNT(*) as attempts')
             ->groupBy('year', 'month')
@@ -249,21 +286,9 @@ class StudentAssessmentController extends Controller
             ->limit(6)
             ->get();
 
-        // Get difficulty-wise performance
-        $difficultyPerformance = DB::table('student_results')
-            ->join('assessments', 'student_results.assessment_id', '=', 'assessments.id')
-            ->join('assessment_questions', 'assessments.id', '=', 'assessment_questions.assessment_id')
-            ->join('questions', 'assessment_questions.question_id', '=', 'questions.id')
-            ->where('student_results.student_id', $studentId)
-            ->select('questions.difficulty')
-            ->selectRaw('AVG((score / total_questions) * 100) as avg_percentage')
-            ->groupBy('questions.difficulty')
-            ->get();
-
         return view('student.assessments.analytics', compact(
             'categoryPerformance', 
-            'monthlyPerformance', 
-            'difficultyPerformance'
+            'monthlyPerformance'
         ));
     }
 }

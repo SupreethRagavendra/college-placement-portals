@@ -95,12 +95,10 @@
                                                 <i class="fas fa-check me-1"></i>Approve
                                             </button>
                                         </form>
-                                        <form action="{{ route('admin.reject-student', $student->id) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-danger" title="Reject Student" onclick="return confirm('Are you sure you want to reject {{ $student->name }}? This will permanently delete their account.')">
-                                                <i class="fas fa-times me-1"></i>Reject
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-danger" title="Reject Student" 
+                                                onclick="openRejectModal({{ $student->id }}, '{{ $student->name }}', '{{ $student->email }}')">
+                                            <i class="fas fa-times me-1"></i>Reject
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -145,6 +143,66 @@
     @endif
 </div>
 
+<!-- Rejection Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="rejectForm" method="POST">
+                @csrf
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="rejectModalLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Reject Student
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Important:</strong> The student will receive an email notification about the rejection.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Student Details:</strong></label>
+                        <div class="p-3 bg-light rounded">
+                            <p class="mb-1"><strong>Name:</strong> <span id="rejectStudentName"></span></p>
+                            <p class="mb-0"><strong>Email:</strong> <span id="rejectStudentEmail"></span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="rejection_reason" class="form-label">
+                            <strong>Rejection Reason</strong> <span class="text-muted">(Optional but recommended)</span>
+                        </label>
+                        <textarea 
+                            class="form-control" 
+                            id="rejection_reason" 
+                            name="rejection_reason" 
+                            rows="4" 
+                            placeholder="Please provide a reason for rejection. This will be included in the email to help the student understand the decision..."
+                            maxlength="500"></textarea>
+                        <small class="text-muted">Maximum 500 characters</small>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmReject" required>
+                        <label class="form-check-label text-danger" for="confirmReject">
+                            I confirm that I want to reject this student's application
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-ban me-1"></i>Reject Student
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Bulk Action Forms -->
 <form id="bulkApproveForm" action="{{ route('admin.bulk-approve') }}" method="POST" style="display: none;">
     @csrf
@@ -185,6 +243,18 @@
 </style>
 
 <script>
+// Rejection Modal Functions
+function openRejectModal(studentId, studentName, studentEmail) {
+    document.getElementById('rejectStudentName').textContent = studentName;
+    document.getElementById('rejectStudentEmail').textContent = studentEmail;
+    document.getElementById('rejectForm').action = `/admin/students/${studentId}/reject`;
+    document.getElementById('rejection_reason').value = '';
+    document.getElementById('confirmReject').checked = false;
+    
+    const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+    modal.show();
+}
+
 function selectAll() {
     const checkboxes = document.querySelectorAll('.student-checkbox');
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');

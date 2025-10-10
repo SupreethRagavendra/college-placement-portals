@@ -108,9 +108,6 @@
                             <a class="nav-link" href="{{ route('admin.assessments.index') }}">
                                 <i class="fas fa-clipboard-list me-2"></i>Assessments
                             </a>
-                            <a class="nav-link" href="{{ route('admin.questions.index') }}">
-                                <i class="fas fa-question-circle me-2"></i>Questions
-                            </a>
                             <a class="nav-link" href="{{ route('admin.reports.student-performance') }}">
                                 <i class="fas fa-user-graduate me-2"></i>Student Progress
                             </a>
@@ -326,7 +323,7 @@
                                                     </thead>
                                                     <tbody>
                                                         @foreach($pendingStudents->take(5) as $student)
-                                                            <tr>
+                                                            <tr data-student-id="{{ $student->id }}">
                                                                 <td>{{ $student->name }}</td>
                                                                 <td>{{ $student->email }}</td>
                                                                 <td>{{ $student->created_at->diffForHumans() }}</td>
@@ -385,9 +382,6 @@
                                             </a>
                                             <a href="{{ route('admin.assessments.index') }}" class="btn btn-outline-primary btn-quick">
                                                 <i class="fas fa-clipboard-list me-2"></i>Manage Assessments
-                                            </a>
-                                            <a href="{{ route('admin.questions.create') }}" class="btn btn-outline-success btn-quick">
-                                                <i class="fas fa-question-circle me-2"></i>Add Questions
                                             </a>
                                             <a href="{{ route('admin.reports.student-performance') }}" class="btn btn-outline-info btn-quick">
                                                 <i class="fas fa-user-graduate me-2"></i>Student Progress
@@ -464,38 +458,101 @@
             requestAnimationFrame(step);
         });
 
-        function approveStudent(studentId) {
+        // Make functions globally accessible
+        window.approveStudent = function(studentId) {
             if (confirm('Are you sure you want to approve this student?')) {
                 fetch(`/admin/students/${studentId}/approve`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                 })
-                .then(() => location.reload())
+                .then(response => {
+                    if (response.ok) {
+                        // Remove the row from the table immediately
+                        const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+                        if (row) {
+                            row.style.transition = 'opacity 0.3s';
+                            row.style.opacity = '0';
+                            setTimeout(() => {
+                                row.remove();
+                                // Update pending count
+                                updatePendingCount();
+                            }, 300);
+                        }
+                        // Reload after a short delay to get updated stats
+                        setTimeout(() => location.reload(), 500);
+                    } else {
+                        return response.text().then(text => {
+                            console.error('Response:', text);
+                            throw new Error('Failed to approve student');
+                        });
+                    }
+                })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while approving the student');
+                    alert('An error occurred while approving the student. Please try again.');
                 });
             }
         }
 
-        function rejectStudent(studentId) {
-            const reason = prompt('Please provide a reason for rejection:');
-            if (reason && reason.trim()) {
-                if (confirm('Are you sure you want to reject this student? This action cannot be undone.')) {
+        window.rejectStudent = function(studentId) {
+            const reason = prompt('Please provide a reason for rejection (optional):');
+            if (reason !== null) { // Allow empty reason but not cancelled prompt
+                if (confirm('Are you sure you want to reject this student?')) {
                     fetch(`/admin/students/${studentId}/reject`, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
                         },
+                        body: JSON.stringify({ rejection_reason: reason || '' })
                     })
-                    .then(() => location.reload())
+                    .then(response => {
+                        if (response.ok) {
+                            // Remove the row from the table immediately
+                            const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+                            if (row) {
+                                row.style.transition = 'opacity 0.3s';
+                                row.style.opacity = '0';
+                                setTimeout(() => {
+                                    row.remove();
+                                    // Update pending count
+                                    updatePendingCount();
+                                }, 300);
+                            }
+                            // Reload after a short delay to get updated stats
+                            setTimeout(() => location.reload(), 500);
+                        } else {
+                            return response.text().then(text => {
+                                console.error('Response:', text);
+                                throw new Error('Failed to reject student');
+                            });
+                        }
+                    })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('An error occurred while rejecting the student');
+                        alert('An error occurred while rejecting the student. Please try again.');
                     });
                 }
+            }
+        }
+
+        function updatePendingCount() {
+            const rows = document.querySelectorAll('tbody tr[data-student-id]');
+            const count = rows.length;
+            const badge = document.querySelector('.badge.text-bg-warning');
+            if (badge) {
+                badge.textContent = `Pending: ${count}`;
+            }
+            // Update the count in the stat card
+            const countElement = document.querySelector('[data-count="{{ $stats['pending_students'] }}"]');
+            if (countElement) {
+                countElement.textContent = count;
+                countElement.setAttribute('data-count', count);
             }
         }
 

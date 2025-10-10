@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
         // Run the admin seeder
         $this->call([
             AdminSeeder::class,
+            AssessmentSeeder::class,
+            AssessmentDataSeeder::class,
         ]);
     }
 }

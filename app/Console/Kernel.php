@@ -19,6 +19,9 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\DeleteAllStudents::class,
         \App\Console\Commands\TestEmailNotification::class,
         \App\Console\Commands\CleanupRevokedStudents::class,
+        \App\Console\Commands\ClearPortalCache::class,
+        \App\Console\Commands\ProcessEmailQueue::class,
+        \App\Console\Commands\ClearUserCache::class,
     ];
 
     /**
@@ -26,7 +29,14 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Process email queue every minute
+        $schedule->command('portal:process-emails')->everyMinute();
+        
+        // Clear cache daily at midnight
+        $schedule->command('portal:clear-cache')->dailyAt('00:00');
+        
+        // Cleanup revoked students daily
+        $schedule->command('app:cleanup-revoked-students')->daily();
     }
 
     /**

@@ -4,20 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\SupabaseService;
+use App\Services\FastAuthService; // Add this import
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Cache;
 
 class AuthController extends Controller
 {
     protected $supabaseService;
+    protected $fastAuthService; // Add this property
 
-    public function __construct(SupabaseService $supabaseService)
+    public function __construct(SupabaseService $supabaseService, FastAuthService $fastAuthService)
     {
         $this->supabaseService = $supabaseService;
+        $this->fastAuthService = $fastAuthService; // Initialize the service
     }
 
     /**
@@ -59,23 +63,8 @@ class AuthController extends Controller
             ]);
 
             // Try to create user in Supabase (optional - for future use)
-            try {
-                $supabaseResponse = $this->supabaseService->signUp(
-                    $validated['email'],
-                    $validated['password'],
-                    [
-                        'name' => $validated['name'],
-                        'role' => $role
-                    ]
-                );
-
-                if (isset($supabaseResponse['id'])) {
-                    $user->update(['supabase_id' => $supabaseResponse['id']]);
-                }
-            } catch (\Exception $e) {
-                // Log error but don't fail registration
-                \Log::warning('Failed to create user in Supabase: ' . $e->getMessage());
-            }
+            // Skip Supabase registration during registration to improve performance
+            // This can be done in a background job if needed
 
             if ($role === 'admin') {
                 $user->update([
@@ -103,7 +92,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle user login
+     * Handle user login with maximum performance optimizations
      */
     public function login(Request $request): RedirectResponse
     {
@@ -112,20 +101,20 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        // Use Laravel's built-in authentication instead of Supabase
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Use our fast authentication service
+        if ($this->fastAuthService->authenticate($request)) {
             $user = Auth::user();
             
-            // Check approval status
-            if ($user->canLogin()) {
+            // Check approval status using optimized methods
+            if ($this->fastAuthService->canUserLogin($user)) {
                 $request->session()->regenerate();
                 return $this->redirectToDashboard();
-            } elseif ($user->isPendingApproval()) {
+            } elseif ($this->fastAuthService->isUserPending($user)) {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
                 return back()->withErrors(['email' => 'Your account is pending admin approval.']);
-            } elseif ($user->isRejected()) {
+            } elseif ($this->fastAuthService->isUserRejected($user)) {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
@@ -141,6 +130,30 @@ class AuthController extends Controller
      */
     public function logout(Request $request): RedirectResponse
     {
+        $userId = Auth::id();
+        
+        // Clear user login status cache
+        if ($userId) {
+            // Clear all user-related caches
+            $cacheKeys = [
+                "user_can_login_check_{$userId}",
+                "user_is_rejected_check_{$userId}",
+                "user_is_pending_check_{$userId}",
+                "user_is_admin_{$userId}",
+                "user_is_student_{$userId}",
+                "user_is_approved_{$userId}",
+                "user_can_login_{$userId}",
+                "user_is_pending_{$userId}",
+                "user_is_rejected_{$userId}",
+                "user_dashboard_route_{$userId}",
+                "user_login_status_{$userId}"
+            ];
+            
+            foreach ($cacheKeys as $key) {
+                Cache::forget($key);
+            }
+        }
+        
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -155,10 +168,12 @@ class AuthController extends Controller
     {
         $user = Auth::user();
         
-        if ($user->isAdmin()) {
-            return redirect()->route('admin.dashboard');
-        } else {
-            return redirect()->route('student.dashboard');
-        }
+        // Cache dashboard route for 1 hour to reduce repeated logic
+        $dashboardRouteKey = "user_dashboard_route_" . $user->id;
+        $route = Cache::remember($dashboardRouteKey, 3600, function() use ($user) {
+            return $user->isAdmin() ? 'admin.dashboard' : 'student.dashboard';
+        });
+        
+        return redirect()->route($route);
     }
 }

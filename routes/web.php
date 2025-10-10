@@ -6,10 +6,11 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminStudentController;
 use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminAssessmentController;
-use App\Http\Controllers\AdminQuestionController;
 use App\Http\Controllers\StudentAssessmentController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+
+// Note: assessment.php is loaded via bootstrap/app.php
 
 // Test database connection
 Route::get('/test-db', function () {
@@ -74,6 +75,9 @@ Route::get('/', function () {
     return view('landing');
 })->name('landing');
 
+// Public RAG health check endpoint (no authentication required)
+Route::get('/rag-health', [\App\Http\Controllers\Student\OpenRouterChatbotController::class, 'health'])->name('rag.health');
+
 // Authentication routes (no email verification required)
 Route::middleware('guest')->group(function () {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
@@ -117,50 +121,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Revoke approved student access
     Route::delete('/students/{id}/revoke', [AdminController::class, 'revokeStudent'])->name('admin.revoke-student');
 
-    // Assessment Management
-    Route::resource('assessments', AdminAssessmentController::class)->names([
-        'index' => 'admin.assessments.index',
-        'create' => 'admin.assessments.create',
-        'store' => 'admin.assessments.store',
-        'show' => 'admin.assessments.show',
-        'edit' => 'admin.assessments.edit',
-        'update' => 'admin.assessments.update',
-        'destroy' => 'admin.assessments.destroy',
-    ]);
-    
-    // Assessment Status Toggle
-    Route::post('/assessments/{assessment}/toggle-status', [AdminAssessmentController::class, 'toggleStatus'])
-        ->name('admin.assessments.toggle-status');
-    
-    // Assessment Question Management
-    Route::get('/assessments/{assessment}/questions', [AdminAssessmentController::class, 'questions'])
-        ->name('admin.assessments.questions');
-    Route::get('/assessments/{assessment}/add-question', [AdminAssessmentController::class, 'addQuestion'])
-        ->name('admin.assessments.add-question');
-    Route::post('/assessments/{assessment}/store-question', [AdminAssessmentController::class, 'storeQuestion'])
-        ->name('admin.assessments.store-question');
-    Route::post('/assessments/{assessment}/assign-question', [AdminAssessmentController::class, 'assignQuestion'])
-        ->name('admin.assessments.assign-question');
-    Route::get('/assessments/{assessment}/questions/{question}/edit', [AdminAssessmentController::class, 'editQuestion'])
-        ->name('admin.assessments.edit-question');
-    Route::put('/assessments/{assessment}/questions/{question}/update', [AdminAssessmentController::class, 'updateQuestion'])
-        ->name('admin.assessments.update-question');
-    Route::delete('/assessments/{assessment}/questions/{question}/delete', [AdminAssessmentController::class, 'deleteQuestion'])
-        ->name('admin.assessments.delete-question');
-
-    // Question Management
-    Route::resource('questions', AdminQuestionController::class)->names([
-        'index' => 'admin.questions.index',
-        'create' => 'admin.questions.create', 
-        'store' => 'admin.questions.store',
-        'show' => 'admin.questions.show',
-        'edit' => 'admin.questions.edit',
-        'update' => 'admin.questions.update',
-        'destroy' => 'admin.questions.destroy',
-    ]);
-    Route::post('/questions/bulk', [AdminQuestionController::class, 'bulk'])->name('admin.questions.bulk');
-    Route::get('/questions/import', [AdminQuestionController::class, 'import'])->name('admin.questions.import');
-    Route::post('/questions/import', [AdminQuestionController::class, 'processImport'])->name('admin.questions.process-import');
+    // Note: Assessment routes are now defined in routes/assessment.php
 
     // Reports
     Route::get('/reports', [AdminReportController::class, 'index'])->name('admin.reports.index');
@@ -168,33 +129,78 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
         ->name('admin.reports.assessment-details');
     Route::get('/reports/students', [AdminReportController::class, 'studentPerformance'])
         ->name('admin.reports.student-performance');
+    Route::get('/reports/students/{student}', [AdminReportController::class, 'studentDetails'])
+        ->name('admin.reports.student-details');
     Route::get('/reports/categories', [AdminReportController::class, 'categoryAnalysis'])
         ->name('admin.reports.category-analysis');
     Route::get('/reports/questions/{assessment}', [AdminReportController::class, 'questionAnalysis'])
         ->name('admin.reports.question-analysis');
+    Route::get('/reports/result/{result}', [AdminReportController::class, 'resultDetails'])
+        ->name('admin.reports.result-details');
     Route::get('/reports/export', [AdminReportController::class, 'exportCsv'])->name('admin.reports.export');
+    
+    // OpenRouter RAG Admin routes
+    Route::post('/rag/sync', [\App\Http\Controllers\Student\OpenRouterChatbotController::class, 'syncKnowledge'])->name('admin.rag.sync');
+    Route::get('/rag/health', [\App\Http\Controllers\Student\OpenRouterChatbotController::class, 'health'])->name('admin.rag.health');
 });
 
 // Student routes
 Route::middleware(['auth', 'role:student'])->prefix('student')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\StudentController::class, 'dashboard'])->name('student.dashboard');
     
-    // Assessment routes
-    Route::get('/assessments', [StudentAssessmentController::class, 'index'])->name('student.assessments');
-    Route::get('/assessments/{assessment}', [StudentAssessmentController::class, 'show'])->name('student.assessment.show');
-    Route::get('/assessments/{assessment}/start', [StudentAssessmentController::class, 'start'])->name('student.assessment.start');
-    Route::post('/assessments/{assessment}/submit', [StudentAssessmentController::class, 'submit'])->name('student.assessment.submit');
-    Route::get('/assessments/{assessment}/result', [StudentAssessmentController::class, 'result'])->name('student.assessment.result');
-    Route::get('/assessment-history', [StudentAssessmentController::class, 'history'])->name('student.assessment.history');
-    Route::get('/analytics', [StudentAssessmentController::class, 'analytics'])->name('student.assessments.analytics');
+    // Chatbot routes (original)
+    Route::post('/chatbot-ask', [\App\Http\Controllers\Student\ChatbotController::class, 'ask'])->name('student.chatbot.ask');
+    Route::get('/chatbot-stats', [\App\Http\Controllers\Student\ChatbotController::class, 'getStats'])->name('student.chatbot.stats');
+    
+    // Intelligent Chatbot routes (enhanced version)
+    Route::post('/intelligent-chat', [\App\Http\Controllers\Student\IntelligentChatbotController::class, 'chat'])->name('student.intelligent.chat');
+    Route::get('/conversation-history', [\App\Http\Controllers\Student\IntelligentChatbotController::class, 'getConversationHistory'])->name('student.conversation.history');
+    Route::post('/chatbot-feedback', [\App\Http\Controllers\Student\IntelligentChatbotController::class, 'addFeedback'])->name('student.chatbot.feedback');
+    Route::get('/performance-insights', [\App\Http\Controllers\Student\IntelligentChatbotController::class, 'getPerformanceInsights'])->name('student.performance.insights');
+    
+    // OpenRouter RAG Chatbot routes (OpenRouter AI)
+    Route::post('/rag-chat', [\App\Http\Controllers\Student\OpenRouterChatbotController::class, 'chat'])->name('student.rag.chat');
+    Route::get('/rag-health', [\App\Http\Controllers\Student\OpenRouterChatbotController::class, 'health'])->name('student.rag.health');
+    
+    // Test route for chatbot mode verification
+    Route::get('/chatbot-mode-test', function() {
+        $ragServiceUrl = config('rag.service_url', 'http://localhost:8001');
+        $ragStatus = 'down';
+        $laravelStatus = 'running';
+        $currentMode = 'unknown';
+        
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(3)->get($ragServiceUrl . '/health');
+            if ($response->successful()) {
+                $ragStatus = 'running';
+                $currentMode = '🟢 Mode 1: RAG ACTIVE';
+            } else {
+                $currentMode = '🟡 Mode 2: LIMITED MODE';
+            }
+        } catch (\Exception $e) {
+            $currentMode = '🟡 Mode 2: LIMITED MODE';
+        }
+        
+        return response()->json([
+            'current_mode' => $currentMode,
+            'services' => [
+                'laravel' => $laravelStatus,
+                'rag_service' => $ragStatus
+            ],
+            'rag_url' => $ragServiceUrl,
+            'user' => Auth::user() ? Auth::user()->name : 'Not authenticated',
+            'timestamp' => now()->toISOString()
+        ]);
+    })->name('student.chatbot.mode.test');
+    
+    // Note: Assessment routes are now defined in routes/assessment.php
     
     // Legacy routes (keeping for backward compatibility)
     Route::get('/categories', [\App\Http\Controllers\StudentController::class, 'categories'])->name('student.categories');
     Route::get('/test/{id}', [\App\Http\Controllers\StudentController::class, 'test'])->name('student.test');
     Route::post('/test/{id}/submit', [\App\Http\Controllers\StudentController::class, 'submitTest'])->name('student.test.submit');
     Route::get('/results/{id}', [\App\Http\Controllers\StudentController::class, 'results'])->name('student.results');
-    Route::get('/profile', [\App\Http\Controllers\StudentController::class, 'profile'])->name('student.profile');
-    Route::post('/profile', [\App\Http\Controllers\StudentController::class, 'updateProfile'])->name('student.profile.update');
+    // Profile routes removed - use general /profile routes instead
     Route::get('/history', [\App\Http\Controllers\StudentController::class, 'history'])->name('student.history');
 });
 
@@ -202,8 +208,13 @@ Route::middleware(['auth', 'role:student'])->prefix('student')->group(function (
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
+
+// Account deletion confirmation routes (no auth required for email links)
+Route::get('/account/delete/confirm/{token}', [ProfileController::class, 'confirmDestroy'])->name('profile.destroy.confirm');
+Route::get('/account/delete/cancel/{token}', [ProfileController::class, 'cancelDestroy'])->name('profile.destroy.cancel');

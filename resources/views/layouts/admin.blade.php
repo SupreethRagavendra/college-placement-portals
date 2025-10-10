@@ -33,10 +33,10 @@
                             <a class="nav-link {{ request()->is('admin/students/rejected') ? 'active' : '' }}" href="{{ route('admin.rejected-students') }}"><i class="fas fa-times-circle me-2"></i>Rejected Students</a>
                             <hr class="text-white-50">
                             <a class="nav-link {{ request()->is('admin/assessments*') ? 'active' : '' }}" href="{{ route('admin.assessments.index') }}"><i class="fas fa-clipboard-list me-2"></i>Assessments</a>
-                            <a class="nav-link {{ request()->is('admin/questions*') ? 'active' : '' }}" href="{{ route('admin.questions.index') }}"><i class="fas fa-question-circle me-2"></i>Questions</a>
                             <a class="nav-link {{ request()->routeIs('admin.reports.student-performance') ? 'active' : '' }}" href="{{ route('admin.reports.student-performance') }}"><i class="fas fa-user-graduate me-2"></i>Student Progress</a>
                             <a class="nav-link {{ request()->is('admin/reports*') && !request()->routeIs('admin.reports.student-performance') ? 'active' : '' }}" href="{{ route('admin.reports.index') }}"><i class="fas fa-chart-line me-2"></i>Reports</a>
                             <hr class="text-white-50">
+                            <a class="nav-link {{ request()->routeIs('profile.edit') ? 'active' : '' }}" href="{{ route('profile.edit') }}"><i class="fas fa-user me-2"></i>Profile</a>
                             <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
                         </nav>
                     </div>

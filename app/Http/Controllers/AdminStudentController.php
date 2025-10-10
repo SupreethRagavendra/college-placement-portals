@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\SupabaseService;
+use App\Services\EmailNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -11,6 +13,14 @@ use Illuminate\Support\Facades\DB;
 
 class AdminStudentController extends Controller
 {
+    protected $supabaseService;
+    protected $emailService;
+
+    public function __construct(SupabaseService $supabaseService, EmailNotificationService $emailService)
+    {
+        $this->supabaseService = $supabaseService;
+        $this->emailService = $emailService;
+    }
     /**
      * Show pending students page
      */
@@ -21,7 +31,6 @@ class AdminStudentController extends Controller
         }
 
         $students = User::pending()
-            ->orderBy('created_at', 'desc')
             ->paginate(10);
 
         return view('admin.students.pending', compact('students'));
@@ -30,7 +39,7 @@ class AdminStudentController extends Controller
     /**
      * Approve student (sets is_approved = true)
      */
-    public function approve($id): RedirectResponse
+    public function approve($id)
     {
         if (!Auth::check() || !Auth::user()->isAdmin()) {
             abort(403);
@@ -43,32 +52,50 @@ class AdminStudentController extends Controller
             ->first();
             
         if (!$student) {
+            if (request()->ajax()) {
+                return response()->json(['error' => 'Student not found or already processed'], 404);
+            }
             return back()->withErrors(['error' => 'Student not found or already processed']);
         }
 
         DB::beginTransaction();
         try {
+            $studentName = $student->name;
             $student->update([
                 'is_approved' => true,
                 'admin_approved_at' => now(),
-                'status' => 'approved',
+                'status' => 'active'
             ]);
             DB::commit();
-            return back()->with('status', "Student {$student->name} has been approved successfully.");
+            
+            // Send approval email asynchronously (non-blocking)
+            $this->sendStatusEmailAsync($student, 'approved');
+            
+            if (request()->ajax()) {
+                return response()->json(['success' => "Student {$studentName} has been approved."]);
+            }
+            return back()->with('status', "Student {$studentName} has been approved.");
         } catch (\Exception $e) {
             DB::rollBack();
+            if (request()->ajax()) {
+                return response()->json(['error' => 'Failed to approve student'], 500);
+            }
             return back()->withErrors(['error' => 'Failed to approve student']);
         }
     }
 
     /**
-     * Reject student (mark as rejected)
+     * Reject student
      */
-    public function reject($id): RedirectResponse
+    public function reject(Request $request, $id)
     {
         if (!Auth::check() || !Auth::user()->isAdmin()) {
             abort(403);
         }
+
+        $request->validate([
+            'rejection_reason' => 'nullable|string|max:500'
+        ]);
 
         $student = User::where('id', $id)
             ->where('role', 'student')
@@ -84,15 +111,100 @@ class AdminStudentController extends Controller
             $studentName = $student->name;
             $student->update([
                 'admin_rejected_at' => now(),
-                'status' => 'rejected'
+                'status' => 'rejected',
+                'rejection_reason' => $request->rejection_reason
             ]);
             DB::commit();
+            
+            // Send rejection email asynchronously (non-blocking)
+            $this->sendStatusEmailAsync($student, 'rejected', $request->rejection_reason);
+            
             return back()->with('status', "Student {$studentName} has been rejected.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Failed to reject student']);
         }
     }
+
+    /**
+     * Send status email asynchronously
+     */
+    private function sendStatusEmailAsync(User $student, string $status, ?string $rejectionReason = null): void
+    {
+        try {
+            // Log the email sending attempt
+            \Log::info("Sending status email", [
+                'student_email' => $student->email,
+                'student_name' => $student->name,
+                'status' => $status,
+                'rejection_reason' => $rejectionReason,
+                'timestamp' => now()
+            ]);
+
+            // Send email notification using EmailNotificationService first (preferred method)
+            $emailSent = $this->emailService->sendStatusEmail(
+                $student->email,
+                $student->name,
+                $status,
+                $rejectionReason
+            );
+
+            if ($emailSent) {
+                \Log::info("Status email sent successfully via EmailNotificationService", [
+                    'student_email' => $student->email,
+                    'status' => $status,
+                    'timestamp' => now()
+                ]);
+                return;
+            }
+
+            // Fallback: Try Supabase service
+            \Log::warning("EmailNotificationService failed, trying Supabase service", [
+                'student_email' => $student->email,
+                'status' => $status
+            ]);
+
+            $promise = $this->supabaseService->sendStatusEmailAsync(
+                $student->email,
+                $student->name,
+                $status,
+                $rejectionReason
+            );
+
+            // Handle the promise completion (optional - for logging)
+            if ($promise) {
+                $promise->then(
+                    function ($response) use ($student, $status) {
+                        \Log::info("Status email sent successfully via Supabase", [
+                            'student_email' => $student->email,
+                            'status' => $status,
+                            'timestamp' => now()
+                        ]);
+                    },
+                    function ($exception) use ($student, $status) {
+                        \Log::error("Failed to send status email via Supabase", [
+                            'student_email' => $student->email,
+                            'status' => $status,
+                            'error' => $exception->getMessage(),
+                            'timestamp' => now()
+                        ]);
+                    }
+                );
+            } else {
+                \Log::warning("Supabase service returned null promise", [
+                    'student_email' => $student->email,
+                    'status' => $status
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            // Log error but don't fail the main operation
+            \Log::error("Error initiating status email", [
+                'student_email' => $student->email,
+                'status' => $status,
+                'error' => $e->getMessage(),
+                'timestamp' => now()
+            ]);
+        }
+    }
 }
-
-

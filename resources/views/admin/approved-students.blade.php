@@ -48,49 +48,40 @@
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
-                            <th>Approved At</th>
                             <th>Approved By</th>
                             <th width="120" class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($approvedStudents as $student)
-                            <tr>
+                            <tr data-student-id="{{ $student->id }}">
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-sm bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                             {{ strtoupper(substr($student->name, 0, 1)) }}
                                         </div>
                                         <div>
-                                            <h6 class="mb-0">{{ $student->name }}</h6>
-                                            <small class="text-muted">Student</small>
+                                            <div class="fw-semibold">{{ $student->name }}</div>
+                                            <small class="text-muted">ID: {{ $student->id }}</small>
                                         </div>
                                     </div>
                                 </td>
+                                <td>{{ $student->email }}</td>
                                 <td>
-                                    <span class="text-muted">{{ $student->email }}</span>
-                                    @if($student->email_verified_at)
-                                        <i class="fas fa-check-circle text-success ms-2" title="Email verified"></i>
-                                    @endif
-                                </td>
-                                <td>
-                                    <div>
-                                        <span class="text-muted">{{ $student->admin_approved_at->format('M d, Y') }}</span>
-                                        <br>
-                                        <small class="text-muted">{{ $student->admin_approved_at->format('H:i') }} ({{ $student->admin_approved_at->diffForHumans() }})</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-user-shield me-1"></i>Admin
-                                    </span>
+                                    <small class="text-muted">
+                                        {{ $student->admin_approved_at ? \Carbon\Carbon::parse($student->admin_approved_at)->format('M d, Y h:i A') : 'N/A' }}
+                                    </small>
                                 </td>
                                 <td class="text-end">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <button type="button" class="btn btn-outline-primary" title="View Details" onclick="viewStudentDetails({{ $student->id }})">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-info" 
+                                                onclick="viewStudentDetails({{ $student->id }})"
+                                                title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger" title="Revoke Access" onclick="revokeStudent({{ $student->id }}, '{{ $student->name }}')">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                onclick="revokeStudent({{ $student->id }}, '{{ addslashes($student->name) }}')"
+                                                title="Revoke Access">
                                             <i class="fas fa-user-times"></i>
                                         </button>
                                     </div>
@@ -100,136 +91,223 @@
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Pagination -->
+            @if($approvedStudents->hasPages())
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-center">
+                        {{ $approvedStudents->links('pagination::bootstrap-5') }}
+                    </div>
+                </div>
+            @endif
         @else
             <div class="text-center py-5">
                 <i class="fas fa-user-check fa-3x text-muted mb-3"></i>
-                <h5>No Approved Students</h5>
-                <p class="text-muted">No students have been approved yet. Check the pending students section.</p>
-                <a href="{{ route('admin.pending-students') }}" class="btn btn-warning">
+                <h5 class="text-muted">No Approved Students</h5>
+                <p class="text-muted">There are no approved students at the moment.</p>
+                <a href="{{ route('admin.pending-students') }}" class="btn btn-primary">
                     <i class="fas fa-clock me-2"></i>View Pending Students
                 </a>
             </div>
         @endif
     </div>
-    @if (method_exists($approvedStudents, 'links') && $approvedStudents->hasPages())
-        <div class="card-footer bg-white">
-            <div class="d-flex justify-content-center">
-                {{ $approvedStudents->links() }}
-            </div>
-        </div>
-    @endif
 </div>
 
 <!-- Student Details Modal -->
-<div class="modal fade" id="studentDetailsModal" tabindex="-1" aria-labelledby="studentDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="studentDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="studentDetailsModalLabel">
-                    <i class="fas fa-user me-2"></i>Student Details
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">Student Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="studentDetailsContent">
-                <!-- Content will be loaded here -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Revoke Access Form -->
-<form id="revokeForm" method="POST" style="display: none;">
-    @csrf
-    @method('DELETE')
-</form>
-@endsection
-
 @push('scripts')
-<style>
-.avatar-sm {
-    width: 36px;
-    height: 36px;
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.table th {
-    border-top: none;
-    font-weight: 600;
-    color: #6c757d;
-    background-color: #f8f9fa;
-}
-
-.table tbody tr:hover {
-    background-color: rgba(40, 167, 69, 0.05);
-}
-
-.btn-group .btn {
-    border-radius: 6px;
-}
-
-.btn-group .btn:not(:last-child) {
-    margin-right: 4px;
-}
-</style>
-
 <script>
 function viewStudentDetails(studentId) {
+    const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
+    modal.show();
+    
+    // Reset content to loading state
+    document.getElementById('studentDetailsContent').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    
     fetch(`/admin/students/${studentId}/details`)
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                alert(data.error);
-                return;
+            let assessmentsHtml = '';
+            if (data.assessments && data.assessments.length > 0) {
+                assessmentsHtml = `
+                    <h6 class="mt-3">Assessment History</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Assessment</th>
+                                    <th>Score</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.assessments.map(a => `
+                                    <tr>
+                                        <td>${a.title}</td>
+                                        <td>${a.score || 'N/A'}</td>
+                                        <td>
+                                            <span class="badge bg-${a.status === 'completed' ? 'success' : 'warning'}">
+                                                ${a.status}
+                                            </span>
+                                        </td>
+                                        <td>${new Date(a.date).toLocaleDateString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                assessmentsHtml = '<p class="text-muted mt-3">No assessment history available.</p>';
             }
             
-            const content = `
+            document.getElementById('studentDetailsContent').innerHTML = `
                 <div class="row">
                     <div class="col-md-6">
-                        <h6 class="text-muted">Name</h6>
-                        <p>${data.name}</p>
+                        <h6>Personal Information</h6>
+                        <table class="table table-sm">
+                            <tr><th width="40%">Name:</th><td>${data.name}</td></tr>
+                            <tr><th>Email:</th><td>${data.email}</td></tr>
+                            <tr><th>ID:</th><td>${data.id}</td></tr>
+                            <tr><th>Status:</th><td><span class="badge bg-success">Approved</span></td></tr>
+                        </table>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="text-muted">Email</h6>
-                        <p>${data.email}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-muted">Registration Date</h6>
-                        <p>${data.created_at}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-muted">Email Verified</h6>
-                        <p>${data.email_verified_at || 'Not verified'}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-muted">Approval Date</h6>
-                        <p>${data.admin_approved_at || 'Not approved'}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-muted">Status</h6>
-                        <span class="badge bg-success">${data.status}</span>
+                        <h6>Account Information</h6>
+                        <table class="table table-sm">
+                            <tr><th width="40%">Registered:</th><td>${new Date(data.created_at).toLocaleDateString()}</td></tr>
+                            <tr><th>Verified:</th><td>${data.verified_at ? new Date(data.verified_at).toLocaleDateString() : 'Not verified'}</td></tr>
+                            <tr><th>Approved:</th><td>${data.admin_approved_at ? new Date(data.admin_approved_at).toLocaleDateString() : 'N/A'}</td></tr>
+                        </table>
                     </div>
                 </div>
+                ${assessmentsHtml}
             `;
-            
-            document.getElementById('studentDetailsContent').innerHTML = content;
-            new bootstrap.Modal(document.getElementById('studentDetailsModal')).show();
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Failed to load student details');
+            document.getElementById('studentDetailsContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Failed to load student details. Please try again.
+                </div>
+            `;
         });
 }
 
 function revokeStudent(studentId, studentName) {
     if (confirm(`Are you sure you want to revoke access for ${studentName}? This will completely delete their account and free up their email for future registrations.`)) {
-        const form = document.getElementById('revokeForm');
-        form.action = `/admin/students/${studentId}/revoke`;
-        form.submit();
+        // Show loading state
+        const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+        if (row) {
+            row.style.opacity = '0.5';
+            row.style.pointerEvents = 'none';
+        }
+        
+        fetch(`/admin/students/${studentId}/revoke`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Animate row removal
+                if (row) {
+                    row.style.transition = 'all 0.3s ease-out';
+                    row.style.transform = 'translateX(-100%)';
+                    row.style.opacity = '0';
+                    setTimeout(() => {
+                        row.remove();
+                        // Update count
+                        updateApprovedCount();
+                        // Check if table is empty
+                        const tbody = document.querySelector('tbody');
+                        if (tbody && tbody.children.length === 0) {
+                            // Reload to show empty state
+                            location.reload();
+                        }
+                    }, 300);
+                }
+                // Show success message
+                showAlert('success', `Access for ${studentName} has been revoked successfully.`);
+            } else {
+                throw new Error('Failed to revoke access');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Restore row state
+            if (row) {
+                row.style.opacity = '1';
+                row.style.pointerEvents = 'auto';
+            }
+            showAlert('danger', 'An error occurred while revoking access. Please try again.');
+        });
     }
+}
+
+function updateApprovedCount() {
+    const rows = document.querySelectorAll('tbody tr[data-student-id]');
+    const count = rows.length;
+    const badge = document.querySelector('.badge.bg-success.fs-6');
+    if (badge) {
+        badge.textContent = `${count} approved student${count !== 1 ? 's' : ''}`;
+    }
+}
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    // Add new alert
+    const container = document.querySelector('.card').parentElement;
+    container.insertAdjacentHTML('afterbegin', alertHtml);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const alert = document.querySelector('.alert');
+        if (alert) {
+            alert.classList.remove('show');
+            setTimeout(() => alert.remove(), 150);
+        }
+    }, 5000);
 }
 </script>
 @endpush
+
+@endsection

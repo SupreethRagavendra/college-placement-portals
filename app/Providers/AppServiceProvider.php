@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Services\FastAuthService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +12,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register our fast authentication service
+        $this->app->singleton(FastAuthService::class, function ($app) {
+            return new FastAuthService();
+        });
     }
 
     /**

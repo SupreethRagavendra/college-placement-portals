@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Cache;
 
 class User extends Authenticatable
 {
@@ -61,55 +62,67 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is admin
+     * Check if user is admin (cached)
      */
     public function isAdmin()
     {
-        return $this->role === 'admin';
+        return Cache::remember("user_is_admin_{$this->id}", 300, function() {
+            return $this->role === 'admin';
+        });
     }
 
     /**
-     * Check if user is student
+     * Check if user is student (cached)
      */
     public function isStudent()
     {
-        return $this->role === 'student';
+        return Cache::remember("user_is_student_{$this->id}", 300, function() {
+            return $this->role === 'student';
+        });
     }
 
     /**
-     * Check if student is approved by admin
+     * Check if student is approved by admin (cached)
      */
     public function isApproved()
     {
-        return $this->isStudent() && 
-               $this->is_verified && 
-               $this->is_approved;
+        return Cache::remember("user_is_approved_{$this->id}", 300, function() {
+            return $this->isStudent() && 
+                   $this->is_verified && 
+                   $this->is_approved;
+        });
     }
 
     /**
-     * Check if user can login (admin or approved student)
+     * Check if user can login (admin or approved student) (cached)
      */
     public function canLogin()
     {
-        return $this->isAdmin() || $this->isApproved();
+        return Cache::remember("user_can_login_{$this->id}", 300, function() {
+            return $this->isAdmin() || $this->isApproved();
+        });
     }
 
     /**
-     * Check if student is pending approval
+     * Check if student is pending approval (cached)
      */
     public function isPendingApproval()
     {
-        return $this->isStudent() && 
-               $this->is_verified && 
-               !$this->is_approved;
+        return Cache::remember("user_is_pending_{$this->id}", 300, function() {
+            return $this->isStudent() && 
+                   $this->is_verified && 
+                   !$this->is_approved;
+        });
     }
 
     /**
-     * Check if student is rejected
+     * Check if student is rejected (cached)
      */
     public function isRejected()
     {
-        return $this->isStudent() && $this->admin_rejected_at;
+        return Cache::remember("user_is_rejected_{$this->id}", 300, function() {
+            return $this->isStudent() && $this->admin_rejected_at;
+        });
     }
 
     /**
@@ -140,5 +153,13 @@ class User extends Authenticatable
     {
         return $query->where('role', 'student')
                     ->whereNotNull('admin_rejected_at');
+    }
+
+    /**
+     * Get student results for this user
+     */
+    public function studentResults()
+    {
+        return $this->hasMany(StudentResult::class, 'student_id');
     }
 }

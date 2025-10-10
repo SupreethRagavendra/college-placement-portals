@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Services\SupabaseService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Collection;
+
 
 class StudentController extends Controller
 {
@@ -21,19 +24,24 @@ class StudentController extends Controller
     {
         $userId = Auth::id();
         
-        // Get assessments data using the new Laravel models
-        $assessments = \App\Models\Assessment::active()
-            ->withCount('questions')
-            ->orderBy('created_at', 'desc')
-            ->limit(6)
-            ->get();
+        // Cache assessments for 2 minutes - they don't change frequently
+        $assessments = Cache::remember('student_assessments_list', 120, function() {
+            return \App\Models\Assessment::active()
+                ->withCount('questions')
+                ->select('id', 'name', 'category', 'total_time', 'difficulty_level', 'created_at')
+                ->orderBy('created_at', 'desc')
+                ->limit(6)
+                ->get();
+        });
 
-        // Get student's previous attempts from results using the new system
-        $userResults = \App\Models\StudentResult::where('student_id', $userId)
-            ->with('assessment')
-            ->orderBy('submitted_at', 'desc')
-            ->get()
-            ->keyBy('assessment_id');
+        // Cache user results for 1 minute - personalized data
+        $userResults = Cache::remember("student_results_{$userId}", 60, function() use ($userId) {
+            return \App\Models\StudentResult::where('student_id', $userId)
+                ->with('assessment:id,name,category')
+                ->select('id', 'student_id', 'assessment_id', 'score', 'total_questions', 'time_taken', 'submitted_at')
+                ->orderBy('submitted_at', 'desc')
+                ->get();
+        });
 
         // Map attempts to assessments for backward compatibility
         $attemptsByAssessment = [];
@@ -46,7 +54,7 @@ class StudentController extends Controller
             ];
         }
 
-        // Calculate statistics from results
+        // Compute statistics directly
         $totalTests = $userResults->count();
         $avgScore = 0;
         $recentTests = [];
@@ -66,52 +74,36 @@ class StudentController extends Controller
             $recentAttempts = $userResults->take(5);
             foreach ($recentAttempts as $result) {
                 $recentTests[] = [
-                    'date' => $result->submitted_at->format('Y-m-d H:i:s'),
-                    'category' => $result->assessment->category ?? 'Unknown',
-                    'score' => $result->total_questions > 0 ? round(($result->score / $result->total_questions) * 100) : 0,
+                    'date' => $result->submitted_at ? $result->submitted_at->format('Y-m-d H:i:s') : null,
+                    'category' => $result->assessment ? $result->assessment->category : 'Unknown',
+                    'score' => $result->total_questions > 0 ? 
+                        round(($result->score / $result->total_questions) * 100) : 0,
                     'assessment_id' => $result->assessment_id,
-                    'assessment_name' => $result->assessment->name ?? 'Unknown Assessment',
+                    'assessment_name' => $result->assessment ? $result->assessment->title : 'Unknown Assessment',
                 ];
             }
         }
 
+        // Calculate rank (if possible)
         $rankText = '—';
-        if ($avgScore > 0) {
-            // Calculate rank based on results
-            try {
-                $allResults = $this->supabase->selectFrom('results', [], ['limit' => 1000]);
-                $userAverages = [];
-                foreach ($allResults as $result) {
-                    $studentId = (int)($result['user_id'] ?? 0);
-                    if (!isset($userAverages[$studentId])) {
-                        $userAverages[$studentId] = ['total_score' => 0, 'total_questions' => 0];
-                    }
-                    $userAverages[$studentId]['total_score'] += (int)($result['score'] ?? 0);
-                    $userAverages[$studentId]['total_questions'] += (int)($result['total'] ?? 0);
-                }
-                
-                $userAvg = $userAverages[$userId] ?? ['total_score' => 0, 'total_questions' => 0];
-                $userAvgScore = $userAvg['total_questions'] > 0 ? ($userAvg['total_score'] / $userAvg['total_questions']) * 100 : 0;
-                
-                $betterCount = 0;
-                foreach ($userAverages as $studentId => $data) {
-                    if ($studentId !== $userId && $data['total_questions'] > 0) {
-                        $studentAvg = ($data['total_score'] / $data['total_questions']) * 100;
-                        if ($studentAvg >= $userAvgScore) {
-                            $betterCount++;
-                        }
-                    }
-                }
-                
-                if ($betterCount > 0) {
-                    $rankText = '#' . ($betterCount + 1);
-                }
-            } catch (\Throwable $e) {
-                // If calculation fails, keep default
+        try {
+            $totalStudents = \App\Models\User::where('role', 'student')->count();
+            $betterCount = \App\Models\StudentResult::selectRaw('(score / total_questions) * 100 as percentage')
+                ->where('student_id', $userId)
+                ->get()
+                ->filter(function($result) {
+                    return $result->percentage > 0;
+                })
+                ->count();
+            
+            if ($betterCount > 0) {
+                $rankText = '#' . ($betterCount + 1);
             }
+        } catch (\Throwable $e) {
+            // If calculation fails, keep default
         }
 
-        // Generate trend data from recent attempts
+        // Compute trend data
         $trendLabels = [];
         $trendScores = [];
         if (!empty($recentTests)) {
@@ -125,16 +117,19 @@ class StudentController extends Controller
         }
 
         return view('student.dashboard', compact(
-            'totalTests', 'avgScore', 'rankText', 'recentTests', 'trendLabels', 'trendScores',
-            'assessments', 'attemptsByAssessment'
-        ));
+            'totalTests', 'avgScore', 'rankText', 'recentTests'
+        ))
+        ->with('trendLabels', $trendLabels)
+        ->with('trendScores', $trendScores)
+        ->with('assessments', $assessments)
+        ->with('attemptsByAssessment', $attemptsByAssessment);
     }
 
     public function categories()
     {
         // Get active assessments grouped by category
         $assessments = \App\Models\Assessment::active()
-            ->withCount('questions')
+            ->withCount('questions') // Use withCount instead of with to avoid Closure issues
             ->orderBy('category')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -145,9 +140,30 @@ class StudentController extends Controller
                 'id' => $category === 'Aptitude' ? 1 : 2,
                 'name' => $category,
                 'assessments' => $assessments,
+                'total_assessments' => $assessments->count(),
                 'total_questions' => $assessments->sum('questions_count')
             ];
         })->values();
+        
+        // If no categories found, provide default structure
+        if ($categories->isEmpty()) {
+            $categories = collect([
+                (object) [
+                    'id' => 1,
+                    'name' => 'Aptitude',
+                    'assessments' => collect(),
+                    'total_assessments' => 0,
+                    'total_questions' => 0
+                ],
+                (object) [
+                    'id' => 2,
+                    'name' => 'Technical',
+                    'assessments' => collect(),
+                    'total_assessments' => 0,
+                    'total_questions' => 0
+                ]
+            ]);
+        }
         
         return view('student.categories', ['categories' => $categories]);
     }
@@ -162,7 +178,6 @@ class StudentController extends Controller
         // Get the first active assessment for this category
         $assessment = \App\Models\Assessment::active()
             ->where('category', $categoryName)
-            ->with('questions')
             ->first();
 
         if (!$assessment) {
@@ -188,12 +203,15 @@ class StudentController extends Controller
             'submitted_at' => now(),
         ]);
 
+        // Get duration from assessment (handle both duration and total_time fields)
+        $duration = $assessment->total_time ?? $assessment->duration ?? 30;
+        
         return view('student.test', [
             'category' => (object) ['id' => $categoryId, 'name' => $categoryName],
             'assessment' => $assessment,
             'questions' => $questions,
             'test_id' => $studentResult->id,
-            'minutes' => $assessment->time_limit,
+            'minutes' => (int)$duration,
         ]);
     }
 
@@ -226,10 +244,14 @@ class StudentController extends Controller
         $total = count($answers);
 
         // Calculate score
-        foreach ($answers as $questionId => $selectedOption) {
+        foreach ($answers as $questionId => $selectedAnswer) {
             $question = $questions->find($questionId);
-            if ($question && $question->correct_option == (int)$selectedOption) {
-                $score++;
+            if ($question) {
+                // Check if the answer is correct
+                // The answer comes as a letter (A, B, C, D)
+                if ($question->isCorrectAnswer($selectedAnswer)) {
+                    $score++;
+                }
             }
         }
 
@@ -265,8 +287,8 @@ class StudentController extends Controller
             'total' => $studentResult->total_questions,
             'time_taken' => $studentResult->time_taken,
             'created_at' => $studentResult->submitted_at,
-            'assessment_name' => $studentResult->assessment->name,
-            'category' => $studentResult->assessment->category,
+            'assessment_name' => $studentResult->assessment->title ?? $studentResult->assessment->name ?? 'Unknown Assessment',
+            'category' => $studentResult->assessment->category ?? 'Unknown',
         ];
 
         // Calculate peer average

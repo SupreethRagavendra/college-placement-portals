@@ -7,19 +7,23 @@ use App\Models\Assessment;
 use App\Models\Question;
 use App\Models\StudentResult;
 use App\Services\SupabaseService;
+use App\Services\EmailNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class AdminController extends Controller
 {
     protected $supabaseService;
+    protected $emailService;
 
-    public function __construct(SupabaseService $supabaseService)
+    public function __construct(SupabaseService $supabaseService, EmailNotificationService $emailService)
     {
         $this->supabaseService = $supabaseService;
+        $this->emailService = $emailService;
     }
 
     /**
@@ -32,81 +36,98 @@ class AdminController extends Controller
             return redirect()->route('login')->withErrors(['error' => 'Unauthorized access.']);
         }
 
-        // Basic user statistics
-        $stats = [
-            'total_students' => User::where('role', 'student')->count(),
-            'approved_students' => User::approved()->count(),
-            'pending_students' => User::pending()->count(),
-            'rejected_students' => User::rejected()->count(),
-        ];
-
-        // Assessment and question statistics
-        $stats['total_assessments'] = Assessment::count();
-        $stats['active_assessments'] = Assessment::where('is_active', true)->count();
-        $stats['total_questions'] = Question::count();
-        $stats['total_attempts'] = StudentResult::count();
-
-        // Calculate average score from Laravel models
-        $averageScore = StudentResult::selectRaw('AVG((score / total_questions) * 100) as avg_percentage')
-            ->value('avg_percentage');
-        $stats['average_score'] = round($averageScore ?? 0, 2);
-
-        // Get recent assessments with attempt counts
-        $recentAssessments = Assessment::withCount('studentResults')
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
-
-        // Get assessment performance analytics
-        $assessmentAnalytics = Assessment::with(['studentResults' => function($query) {
-            $query->select('assessment_id', 'score', 'total_questions');
-        }])
-        ->withCount('studentResults')
-        ->get()
-        ->map(function($assessment) {
-            $results = $assessment->studentResults;
+        // Cache dashboard statistics for 5 minutes
+        $stats = Cache::remember('admin_dashboard_stats', 300, function() {
             return [
-                'id' => $assessment->id,
-                'title' => $assessment->title,
-                'category' => $assessment->category,
-                'attempts' => $assessment->student_results_count,
-                'avg_score' => round($results->avg('score') ?? 0, 2),
-                'avg_percentage' => $results->count() > 0 
-                    ? round($results->avg(function($result) {
-                        return $result->total_questions > 0 ? ($result->score / $result->total_questions) * 100 : 0;
-                    }), 2) : 0,
-                'highest_score' => $results->max('score') ?? 0,
-                'lowest_score' => $results->min('score') ?? 0,
+                'total_students' => User::where('role', 'student')->count(),
+                'approved_students' => User::approved()->count(),
+                'pending_students' => User::pending()->count(),
+                'rejected_students' => User::rejected()->count(),
+                'total_assessments' => Assessment::count(),
+                'active_assessments' => Assessment::where('is_active', true)->count(),
+                'total_questions' => Question::count(),
+                'total_attempts' => StudentResult::count(),
             ];
         });
 
-        // Get top performing students
-        $topStudents = StudentResult::select('student_id')
-            ->selectRaw('AVG((score / total_questions) * 100) as avg_percentage')
-            ->selectRaw('COUNT(*) as attempts_count')
-            ->with('student:id,name,email')
-            ->groupBy('student_id')
-            ->havingRaw('COUNT(*) >= 1')
-            ->orderBy('avg_percentage', 'desc')
-            ->limit(5)
-            ->get();
+        // Cache average score calculation for 5 minutes
+        $stats['average_score'] = Cache::remember('admin_dashboard_avg_score', 300, function() {
+            $averageScore = StudentResult::selectRaw('AVG((score / total_questions) * 100) as avg_percentage')
+                ->value('avg_percentage');
+            return round($averageScore ?? 0, 2);
+        });
 
-        // Get category-wise performance
-        $categoryPerformance = Assessment::select('category')
-            ->join('student_results', 'assessments.id', '=', 'student_results.assessment_id')
-            ->selectRaw('category, AVG((score / total_questions) * 100) as avg_percentage, COUNT(*) as total_attempts')
-            ->groupBy('category')
+        // Cache recent assessments for 2 minutes
+        $recentAssessments = Cache::remember('admin_recent_assessments', 120, function() {
+            return Assessment::withCount('studentResults')
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get();
+        });
+
+        // Cache assessment analytics for 5 minutes
+        $assessmentAnalytics = Cache::remember('admin_assessment_analytics', 300, function() {
+            return Assessment::with(['studentResults' => function($query) {
+                $query->select('assessment_id', 'score', 'total_questions');
+            }])
+            ->withCount('studentResults')
             ->get()
-            ->map(function($item) {
+            ->map(function($assessment) {
+                $results = $assessment->studentResults;
                 return [
-                    'category' => $item->category,
-                    'avg_percentage' => round($item->avg_percentage ?? 0, 2),
-                    'total_attempts' => $item->total_attempts ?? 0
+                    'id' => $assessment->id,
+                    'title' => $assessment->name,
+                    'category' => $assessment->category,
+                    'attempts' => $assessment->student_results_count,
+                    'avg_score' => round($results->avg('score') ?? 0, 2),
+                    'avg_percentage' => $results->count() > 0 
+                        ? round($results->avg(function($result) {
+                            return $result->total_questions > 0 ? ($result->score / $result->total_questions) * 100 : 0;
+                        }), 2) : 0,
+                    'highest_score' => $results->max('score') ?? 0,
+                    'lowest_score' => $results->min('score') ?? 0,
                 ];
             });
+        });
 
-        $pendingStudents = User::pending()->orderBy('created_at', 'desc')->get();
-        $recentApprovals = User::approved()->orderBy('admin_approved_at', 'desc')->limit(5)->get();
+        // Cache top students for 5 minutes
+        $topStudents = Cache::remember('admin_top_students', 300, function() {
+            return StudentResult::select('student_id')
+                ->selectRaw('AVG((score / total_questions) * 100) as avg_percentage')
+                ->selectRaw('COUNT(*) as attempts_count')
+                ->with('student:id,name,email')
+                ->groupBy('student_id')
+                ->havingRaw('COUNT(*) >= 1')
+                ->orderBy('avg_percentage', 'desc')
+                ->limit(5)
+                ->get();
+        });
+
+        // Cache category performance for 5 minutes
+        $categoryPerformance = Cache::remember('admin_category_performance', 300, function() {
+            return Assessment::select('category')
+                ->join('student_results', 'assessments.id', '=', 'student_results.assessment_id')
+                ->selectRaw('category, AVG((score / total_questions) * 100) as avg_percentage, COUNT(*) as total_attempts')
+                ->groupBy('category')
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'category' => $item->category,
+                        'avg_percentage' => round($item->avg_percentage ?? 0, 2),
+                        'total_attempts' => $item->total_attempts ?? 0
+                    ];
+                });
+        });
+
+        // Cache pending students for 1 minute (more frequently updated)
+        $pendingStudents = Cache::remember('admin_pending_students', 60, function() {
+            return User::pending()->orderBy('created_at', 'desc')->get();
+        });
+
+        // Cache recent approvals for 2 minutes
+        $recentApprovals = Cache::remember('admin_recent_approvals', 120, function() {
+            return User::approved()->orderBy('admin_approved_at', 'desc')->limit(5)->get();
+        });
 
         return view('admin.dashboard', compact(
             'stats', 
@@ -163,10 +184,13 @@ class AdminController extends Controller
     /**
      * Approve a student
      */
-    public function approveStudent(Request $request, $id): RedirectResponse
+    public function approveStudent(Request $request, $id)
     {
         // Check if user is authenticated and is admin
         if (!Auth::check() || !Auth::user()->isAdmin()) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Unauthorized access.'], 403);
+            }
             return redirect()->route('login')->withErrors(['error' => 'Unauthorized access.']);
         }
 
@@ -178,6 +202,9 @@ class AdminController extends Controller
             ->first();
 
         if (!$student) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Student not found or already processed.'], 404);
+            }
             return back()->withErrors(['error' => 'Student not found or already processed.']);
         }
 
@@ -191,14 +218,30 @@ class AdminController extends Controller
             ]);
 
             DB::commit();
+            
+            // Clear cache
+            Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_pending_students');
+            Cache::forget('admin_recent_approvals');
 
             // Send approval email asynchronously (non-blocking)
             $this->sendStatusEmailAsync($student, 'approved');
 
-            return back()->with('status', "Student {$student->name} has been approved successfully.");
+            $message = "Student {$student->name} has been approved successfully.";
+            
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'success', 'message' => $message]);
+            }
+            
+            return back()->with('status', $message);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Failed to approve student. Please try again.'], 500);
+            }
+            
             return back()->withErrors(['error' => 'Failed to approve student. Please try again.']);
         }
     }
@@ -206,10 +249,13 @@ class AdminController extends Controller
     /**
      * Reject a student
      */
-    public function rejectStudent(Request $request, $id): RedirectResponse
+    public function rejectStudent(Request $request, $id)
     {
         // Check if user is authenticated and is admin
         if (!Auth::check() || !Auth::user()->isAdmin()) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Unauthorized access.'], 403);
+            }
             return redirect()->route('login')->withErrors(['error' => 'Unauthorized access.']);
         }
 
@@ -225,6 +271,9 @@ class AdminController extends Controller
             ->first();
 
         if (!$student) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Student not found or already processed.'], 404);
+            }
             return back()->withErrors(['error' => 'Student not found or already processed.']);
         }
 
@@ -238,14 +287,29 @@ class AdminController extends Controller
             ]);
 
             DB::commit();
+            
+            // Clear cache
+            Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_pending_students');
 
             // Send rejection email asynchronously (non-blocking)
             $this->sendStatusEmailAsync($student, 'rejected', $request->rejection_reason);
 
-            return back()->with('status', "Student {$student->name} has been rejected.");
+            $message = "Student {$student->name} has been rejected.";
+            
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'success', 'message' => $message]);
+            }
+            
+            return back()->with('status', $message);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Failed to reject student. Please try again.'], 500);
+            }
+            
             return back()->withErrors(['error' => 'Failed to reject student. Please try again.']);
         }
     }
@@ -410,10 +474,13 @@ class AdminController extends Controller
     /**
      * Revoke access for an approved student (completely delete the record)
      */
-    public function revokeStudent(Request $request, $id): RedirectResponse
+    public function revokeStudent(Request $request, $id)
     {
         // Check if user is authenticated and is admin
         if (!Auth::check() || !Auth::user()->isAdmin()) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Unauthorized access.'], 403);
+            }
             return redirect()->route('login')->withErrors(['error' => 'Unauthorized access.']);
         }
 
@@ -424,6 +491,9 @@ class AdminController extends Controller
             ->first();
 
         if (!$student) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Student not found or already processed.'], 404);
+            }
             return back()->withErrors(['error' => 'Student not found or already processed.']);
         }
 
@@ -433,11 +503,21 @@ class AdminController extends Controller
             $studentEmail = $student->email;
             $supabaseUserId = $student->supabase_user_id ?? null;
             
+            // Clear cache related to this student
+            Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_dashboard_avg_score');
+            Cache::forget('admin_recent_approvals');
+            Cache::forget('admin_top_students');
+            
             // Send revocation email before deleting the record
             $this->sendStatusEmailAsync($student, 'rejected', 'Access revoked by administrator');
             
             // Delete all related student data first
             \App\Models\StudentResult::where('student_id', $id)->delete();
+            \App\Models\StudentAssessment::where('student_id', $id)->delete();
+            \App\Models\StudentAnswer::where('student_assessment_id', function($query) use ($id) {
+                $query->select('id')->from('student_assessments')->where('student_id', $id);
+            })->delete();
             
             // If using Supabase authentication, also delete from Supabase
             if ($supabaseUserId) {
@@ -455,10 +535,22 @@ class AdminController extends Controller
 
             DB::commit();
 
-            return back()->with('status', "Access for {$studentName} ({$studentEmail}) has been revoked and the account has been completely removed. The email is now available for new registrations.");
+            $message = "Access for {$studentName} ({$studentEmail}) has been revoked and the account has been completely removed. The email is now available for new registrations.";
+            
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'success', 'message' => $message]);
+            }
+            
+            return back()->with('status', $message);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Failed to revoke student access', ['error' => $e->getMessage(), 'student_id' => $id]);
+            
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Failed to revoke access. Please try again.'], 500);
+            }
+            
             return back()->withErrors(['error' => 'Failed to revoke access. Please try again.']);
         }
     }
@@ -469,7 +561,38 @@ class AdminController extends Controller
     private function sendStatusEmailAsync(User $student, string $status, ?string $rejectionReason = null): void
     {
         try {
-            // Send email notification asynchronously
+            // Log the email sending attempt
+            \Log::info("Sending status email", [
+                'student_email' => $student->email,
+                'student_name' => $student->name,
+                'status' => $status,
+                'rejection_reason' => $rejectionReason,
+                'timestamp' => now()
+            ]);
+
+            // Send email notification using EmailNotificationService first (preferred method)
+            $emailSent = $this->emailService->sendStatusEmail(
+                $student->email,
+                $student->name,
+                $status,
+                $rejectionReason
+            );
+
+            if ($emailSent) {
+                \Log::info("Status email sent successfully via EmailNotificationService", [
+                    'student_email' => $student->email,
+                    'status' => $status,
+                    'timestamp' => now()
+                ]);
+                return;
+            }
+
+            // Fallback: Try Supabase service
+            \Log::warning("EmailNotificationService failed, trying Supabase service", [
+                'student_email' => $student->email,
+                'status' => $status
+            ]);
+
             $promise = $this->supabaseService->sendStatusEmailAsync(
                 $student->email,
                 $student->name,
@@ -481,14 +604,14 @@ class AdminController extends Controller
             if ($promise) {
                 $promise->then(
                     function ($response) use ($student, $status) {
-                        \Log::info("Status email sent successfully", [
+                        \Log::info("Status email sent successfully via Supabase", [
                             'student_email' => $student->email,
                             'status' => $status,
                             'timestamp' => now()
                         ]);
                     },
                     function ($exception) use ($student, $status) {
-                        \Log::error("Failed to send status email", [
+                        \Log::error("Failed to send status email via Supabase", [
                             'student_email' => $student->email,
                             'status' => $status,
                             'error' => $exception->getMessage(),
@@ -496,7 +619,13 @@ class AdminController extends Controller
                         ]);
                     }
                 );
+            } else {
+                \Log::warning("Supabase service returned null promise", [
+                    'student_email' => $student->email,
+                    'status' => $status
+                ]);
             }
+
         } catch (\Exception $e) {
             // Log error but don't fail the main operation
             \Log::error("Error initiating status email", [

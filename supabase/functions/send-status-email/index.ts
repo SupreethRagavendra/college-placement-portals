@@ -1,12 +1,12 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// Setup type definitions for built-in Supabase Runtime APIs
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface EmailRequest {
+interface SendEmailRequest {
   student_email: string
   student_name: string
   status: 'approved' | 'rejected'
@@ -14,29 +14,24 @@ interface EmailRequest {
   college_name?: string
 }
 
-interface SendGridEmailData {
-  personalizations: Array<{
-    to: Array<{ email: string; name?: string }>
-    subject: string
-  }>
-  from: {
-    email: string
-    name: string
-  }
-  content: Array<{
-    type: string
-    value: string
-  }>
+interface ResendEmailData {
+  from: string
+  to: string[]
+  subject: string
+  html: string
 }
 
-serve(async (req) => {
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xanpndqw' // Fallback endpoint based on user preferences
+
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { student_email, student_name, status, rejection_reason, college_name } = await req.json() as EmailRequest
+    const { student_email, student_name, status, rejection_reason, college_name } = await req.json() as SendEmailRequest
 
     // Validate required fields
     if (!student_email || !student_name || !status) {
@@ -60,59 +55,86 @@ serve(async (req) => {
       )
     }
 
-    // Get SendGrid API key from environment
-    const sendGridApiKey = Deno.env.get('SENDGRID_API_KEY')
-    if (!sendGridApiKey) {
-      console.error('SENDGRID_API_KEY not configured')
-      return new Response(
-        JSON.stringify({ error: 'Email service not configured' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
     // Generate email content based on status
     const emailContent = generateEmailContent(student_name, status, rejection_reason, college_name)
     
-    // Prepare SendGrid email data
-    const emailData: SendGridEmailData = {
-      personalizations: [
-        {
-          to: [{ email: student_email, name: student_name }],
-          subject: emailContent.subject
+    let emailSent = false
+    let response_data: any = null
+
+    // Try Resend first (primary method)
+    if (RESEND_API_KEY) {
+      try {
+        const emailData: ResendEmailData = {
+          from: Deno.env.get('FROM_EMAIL') || 'noreply@collegeportal.com',
+          to: [student_email],
+          subject: emailContent.subject,
+          html: emailContent.html
         }
-      ],
-      from: {
-        email: Deno.env.get('FROM_EMAIL') || 'noreply@collegeportal.com',
-        name: Deno.env.get('FROM_NAME') || 'College Placement Portal'
-      },
-      content: [
-        {
-          type: 'text/html',
-          value: emailContent.html
+
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+          },
+          body: JSON.stringify(emailData)
+        })
+
+        if (resendResponse.ok) {
+          response_data = await resendResponse.json()
+          emailSent = true
+          console.log(`Email sent via Resend to ${student_email} for status: ${status}`)
+        } else {
+          const errorText = await resendResponse.text()
+          console.error('Resend API error:', errorText)
+          throw new Error(`Resend failed: ${resendResponse.status}`)
         }
-      ]
+      } catch (error) {
+        console.error('Resend error:', error)
+        // Continue to Formspree fallback
+      }
     }
 
-    // Send email via SendGrid
-    const sendGridResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${sendGridApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(emailData)
-    })
+    // Fallback to Formspree (based on user preferences)
+    if (!emailSent) {
+      try {
+        const formspreeData = {
+          email: student_email,
+          name: student_name,
+          subject: emailContent.subject,
+          message: emailContent.textContent,
+          _replyto: student_email,
+          _subject: emailContent.subject
+        }
 
-    if (!sendGridResponse.ok) {
-      const errorText = await sendGridResponse.text()
-      console.error('SendGrid API error:', errorText)
+        const formspreeResponse = await fetch(FORMSPREE_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(formspreeData)
+        })
+
+        if (formspreeResponse.ok) {
+          response_data = await formspreeResponse.json()
+          emailSent = true
+          console.log(`Email sent via Formspree fallback to ${student_email} for status: ${status}`)
+        } else {
+          const errorText = await formspreeResponse.text()
+          console.error('Formspree API error:', errorText)
+          throw new Error(`Formspree failed: ${formspreeResponse.status}`)
+        }
+      } catch (error) {
+        console.error('Formspree fallback error:', error)
+      }
+    }
+
+    if (!emailSent) {
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to send email',
-          details: sendGridResponse.status === 429 ? 'Rate limit exceeded' : 'Email service error'
+          error: 'Failed to send email via both Resend and Formspree',
+          details: 'All email providers failed'
         }),
         { 
           status: 500, 
@@ -121,14 +143,13 @@ serve(async (req) => {
       )
     }
 
-    // Log successful email send
-    console.log(`Email sent successfully to ${student_email} for status: ${status}`)
-
     return new Response(
       JSON.stringify({ 
         message: 'Email sent successfully',
         recipient: student_email,
-        status: status 
+        status: status,
+        provider: RESEND_API_KEY ? 'resend' : 'formspree',
+        data: response_data
       }),
       {
         status: 200,
@@ -172,109 +193,143 @@ function generateEmailContent(
   `
 
   if (status === 'approved') {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        ${baseStyles}
+      </head>
+      <body>
+        <div class="header">
+          <h1>🎉 Account Approved!</h1>
+          <p>Welcome to ${collegeName}</p>
+        </div>
+        <div class="content">
+          <p>Dear <strong>${studentName}</strong>,</p>
+          
+          <p>Great news! Your account registration has been <span class="status-approved">APPROVED</span>.</p>
+          
+          <div class="next-steps">
+            <h3>🚀 What's Next?</h3>
+            <ul>
+              <li>You can now log in to access the placement portal</li>
+              <li>Complete your profile with additional details</li>
+              <li>Browse available placement opportunities</li>
+              <li>Take practice assessments to prepare</li>
+            </ul>
+          </div>
+          
+          <p style="text-align: center;">
+            <a href="${Deno.env.get('PORTAL_URL') || 'https://your-portal.com'}/login" class="cta-button">
+              Access Portal Now
+            </a>
+          </p>
+          
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+          
+          <p>Best regards,<br>
+          <strong>${collegeName} Team</strong></p>
+        </div>
+        <div class="footer">
+          <p>This is an automated message. Please do not reply to this email.</p>
+          <p>© ${new Date().getFullYear()} ${collegeName}. All rights reserved.</p>
+        </div>
+      </body>
+      </html>
+    `
+    
+    const textContent = `Dear ${studentName},
+
+Great news! Your account registration has been APPROVED.
+
+What's Next?
+- You can now log in to access the placement portal
+- Complete your profile with additional details
+- Browse available placement opportunities
+- Take practice assessments to prepare
+
+Best regards,
+${collegeName} Team`
+
     return {
       subject: `🎉 Congratulations! Your account has been approved - ${collegeName}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          ${baseStyles}
-        </head>
-        <body>
-          <div class="header">
-            <h1>🎉 Account Approved!</h1>
-            <p>Welcome to ${collegeName}</p>
-          </div>
-          <div class="content">
-            <p>Dear <strong>${studentName}</strong>,</p>
-            
-            <p>Great news! Your account registration has been <span class="status-approved">APPROVED</span>.</p>
-            
-            <div class="next-steps">
-              <h3>🚀 What's Next?</h3>
-              <ul>
-                <li>You can now log in to access the placement portal</li>
-                <li>Complete your profile with additional details</li>
-                <li>Browse available placement opportunities</li>
-                <li>Take practice assessments to prepare</li>
-              </ul>
-            </div>
-            
-            <p style="text-align: center;">
-              <a href="${Deno.env.get('PORTAL_URL') || 'https://your-portal.com'}/login" class="cta-button">
-                Access Portal Now
-              </a>
-            </p>
-            
-            <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-            
-            <p>Best regards,<br>
-            <strong>${collegeName} Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>This is an automated message. Please do not reply to this email.</p>
-            <p>© ${new Date().getFullYear()} ${collegeName}. All rights reserved.</p>
-          </div>
-        </body>
-        </html>
-      `
+      html,
+      textContent
     }
   } else {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        ${baseStyles}
+      </head>
+      <body>
+        <div class="header">
+          <h1>Application Status Update</h1>
+          <p>${collegeName}</p>
+        </div>
+        <div class="content">
+          <p>Dear <strong>${studentName}</strong>,</p>
+          
+          <p>Thank you for your interest in joining ${collegeName}. After careful review, we regret to inform you that your account registration has been <span class="status-rejected">NOT APPROVED</span> at this time.</p>
+          
+          ${rejectionReason ? `
+            <div class="reason-box">
+              <h3>📝 Reason for Decision:</h3>
+              <p>${rejectionReason}</p>
+            </div>
+          ` : ''}
+          
+          <div class="next-steps">
+            <h3>💡 What You Can Do:</h3>
+            <ul>
+              <li>Review the reason provided above (if applicable)</li>
+              <li>Address any issues mentioned in the feedback</li>
+              <li>You may reapply after addressing the concerns</li>
+              <li>Contact our admissions team for clarification if needed</li>
+            </ul>
+          </div>
+          
+          <p>We encourage you to reapply once you've addressed the mentioned concerns. Our admissions team is always here to help guide you through the process.</p>
+          
+          <p>For any questions or to discuss your application, please contact us at:</p>
+          <p><strong>Email:</strong> supreethvennila@gmail.com<br>
+          <strong>Phone:</strong> +1 (555) 123-4567</p>
+          
+          <p>Best regards,<br>
+          <strong>${collegeName} Admissions Team</strong></p>
+        </div>
+        <div class="footer">
+          <p>This is an automated message. Please do not reply to this email.</p>
+          <p>© ${new Date().getFullYear()} ${collegeName}. All rights reserved.</p>
+        </div>
+      </body>
+      </html>
+    `
+    
+    const textContent = `Dear ${studentName},
+
+Thank you for your interest in joining ${collegeName}. After careful review, we regret to inform you that your account registration has been NOT APPROVED at this time.
+
+${rejectionReason ? `Reason: ${rejectionReason}
+
+` : ''}What You Can Do:
+- Review the reason provided above (if applicable)
+- Address any issues mentioned in the feedback
+- You may reapply after addressing the concerns
+- Contact our admissions team for clarification if needed
+
+Best regards,
+${collegeName} Admissions Team`
+
     return {
       subject: `Application Status Update - ${collegeName}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          ${baseStyles}
-        </head>
-        <body>
-          <div class="header">
-            <h1>Application Status Update</h1>
-            <p>${collegeName}</p>
-          </div>
-          <div class="content">
-            <p>Dear <strong>${studentName}</strong>,</p>
-            
-            <p>Thank you for your interest in joining ${collegeName}. After careful review, we regret to inform you that your account registration has been <span class="status-rejected">NOT APPROVED</span> at this time.</p>
-            
-            ${rejectionReason ? `
-              <div class="reason-box">
-                <h3>📝 Reason for Decision:</h3>
-                <p>${rejectionReason}</p>
-              </div>
-            ` : ''}
-            
-            <div class="next-steps">
-              <h3>💡 What You Can Do:</h3>
-              <ul>
-                <li>Review the reason provided above (if applicable)</li>
-                <li>Address any issues mentioned in the feedback</li>
-                <li>You may reapply after addressing the concerns</li>
-                <li>Contact our admissions team for clarification if needed</li>
-              </ul>
-            </div>
-            
-            <p>We encourage you to reapply once you've addressed the mentioned concerns. Our admissions team is always here to help guide you through the process.</p>
-            
-            <p>For any questions or to discuss your application, please contact us at:</p>
-            <p><strong>Email:</strong> admissions@${collegeName.toLowerCase().replace(/\s+/g, '')}.com<br>
-            <strong>Phone:</strong> +1 (555) 123-4567</p>
-            
-            <p>Best regards,<br>
-            <strong>${collegeName} Admissions Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>This is an automated message. Please do not reply to this email.</p>
-            <p>© ${new Date().getFullYear()} ${collegeName}. All rights reserved.</p>
-          </div>
-        </body>
-        </html>
-      `
+      html,
+      textContent
     }
   }
 }
@@ -285,8 +340,8 @@ function generateEmailContent(
 3. Link project: supabase link --project-ref your-project-ref
 4. Deploy: supabase functions deploy send-status-email
 5. Set environment variables:
-   supabase secrets set SENDGRID_API_KEY=your_sendgrid_api_key
-   supabase secrets set FROM_EMAIL=your_from_email
-   supabase secrets set FROM_NAME="Your App Name"
+   supabase secrets set RESEND_API_KEY=your_resend_api_key
+   supabase secrets set FROM_EMAIL=supreethvennila@gmail.com
+   supabase secrets set FROM_NAME="College Placement Portal"
    supabase secrets set PORTAL_URL=https://your-portal-url.com
 */

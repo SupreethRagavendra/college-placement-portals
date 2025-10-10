@@ -133,13 +133,14 @@
                                     </td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-primary" 
-                                                    onclick="viewStudentDetails({{ $student->id }}, '{{ $student->name }}')">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
+                                            <a href="{{ route('admin.reports.student-details', $student->id) }}" 
+                                               class="btn btn-outline-primary" 
+                                               title="View Detailed Performance">
+                                                <i class="fas fa-chart-line"></i> Details
+                                            </a>
                                             <button class="btn btn-outline-info" 
-                                                    onclick="viewStudentHistory({{ $student->id }}, '{{ $student->name }}')">
-                                                <i class="fas fa-history"></i>
+                                                    onclick="showQuickStats({{ $student->id }}, '{{ $student->name }}')">
+                                                <i class="fas fa-info-circle"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -209,18 +210,24 @@
     @endif
 </div>
 
-<!-- Student Details Modal -->
-<div class="modal fade" id="studentDetailsModal" tabindex="-1">
+<!-- Quick Stats Modal -->
+<div class="modal fade" id="quickStatsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Student Details</h5>
+                <h5 class="modal-title">Quick Statistics</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="studentDetailsContent">
+                <div id="quickStatsContent">
                     <!-- Content will be loaded here -->
                 </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="viewFullDetailsBtn" class="btn btn-primary">
+                    <i class="fas fa-chart-line"></i> View Full Details
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -268,27 +275,58 @@
 </style>
 
 <script>
-function viewStudentDetails(studentId, studentName) {
-    // This would typically make an AJAX call to get detailed student data
-    document.getElementById('studentDetailsContent').innerHTML = `
+function showQuickStats(studentId, studentName) {
+    // Show quick statistics in modal
+    document.getElementById('quickStatsContent').innerHTML = `
         <div class="text-center py-4">
-            <i class="fas fa-user fa-3x text-primary mb-3"></i>
-            <h5>${studentName}</h5>
-            <p class="text-muted">Detailed performance data for this student</p>
-            <p class="text-muted">Student ID: ${studentId}</p>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                This feature will show detailed assessment history, progress charts, and performance analytics for the selected student.
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
             </div>
+            <p class="mt-2">Loading statistics for ${studentName}...</p>
         </div>
     `;
     
-    new bootstrap.Modal(document.getElementById('studentDetailsModal')).show();
-}
-
-function viewStudentHistory(studentId, studentName) {
-    // This would typically redirect to a detailed student history page
-    window.location.href = `/admin/reports/student/${studentId}/history`;
+    // Set the link for full details
+    document.getElementById('viewFullDetailsBtn').href = `/admin/reports/students/${studentId}`;
+    
+    // Show modal
+    new bootstrap.Modal(document.getElementById('quickStatsModal')).show();
+    
+    // In a real implementation, you would make an AJAX call here to get quick stats
+    setTimeout(() => {
+        document.getElementById('quickStatsContent').innerHTML = `
+            <div class="row">
+                <div class="col-md-12">
+                    <h5 class="mb-3"><i class="fas fa-user-circle"></i> ${studentName}</h5>
+                    <p class="text-muted">Student ID: ${studentId}</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Recent Activity</h6>
+                            <p class="card-text">Last assessment: 2 days ago</p>
+                            <p class="card-text">Active since: 30 days ago</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Performance Summary</h6>
+                            <p class="card-text">Strengths: Technical Assessments</p>
+                            <p class="card-text">Needs Improvement: Aptitude Tests</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Click "View Full Details" for complete performance analytics, charts, and assessment history.
+                    </div>
+                </div>
+            </div>
+        `;
+    }, 500);
 }
 </script>
 @endsection

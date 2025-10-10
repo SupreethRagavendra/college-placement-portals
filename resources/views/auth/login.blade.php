@@ -139,7 +139,7 @@
                         <!-- Demo Credentials -->
                         <div class="demo-credentials">
                             <h6><i class="fas fa-info-circle me-2"></i>Demo Credentials</h6>
-                            <p><strong>Admin:</strong> admin@portal.com / password</p>
+                            <p><strong>Admin:</strong> admin@portal.com / Admin@123</p>
                             <p><strong>Student:</strong> Register a new account</p>
                         </div>
 

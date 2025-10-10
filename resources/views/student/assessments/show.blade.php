@@ -1,86 +1,195 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="h4 mb-0">{{ $assessment->name ?? 'Assessment' }}</h2>
-        <p class="text-muted mb-0">{{ $assessment->category ?? '' }} • {{ $assessment->time_limit ?? 0 }} minutes</p>
-    </x-slot>
-    <div class="container py-4">
-        <div class="row justify-content-center">
-            <div class="col-12 col-lg-8">
-                <div class="card mb-4">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-clock me-2"></i>Time Left: <span id="timer">00:{{ str_pad((string)($assessment->time_limit ?? 30),2,'0',STR_PAD_LEFT) }}:00</span></span>
-                        <span>Question <span id="currentQ">1</span> of {{ count($questions) }}</span>
-                    </div>
-                </div>
+@extends('layouts.student')
 
-                <form id="assessmentForm" method="POST" action="{{ route('student.assessment.submit', $assessment) }}">
-                    @csrf
-                    <input type="hidden" name="time_taken" id="time_taken" value="0">
-                    
-                    <div id="questionArea">
-                        @foreach ($questions as $idx => $q)
-                            <div class="question-block" data-q="{{ $idx+1 }}" style="display: {{ $idx === 0 ? 'block' : 'none' }};">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="mb-3">
-                                            <span class="fw-semibold">Q{{ $idx+1 }}. {{ $q->question ?? '' }}</span>
-                                        </div>
-                                        <div class="mb-3">
-                                            @php $options = is_array($q->options ?? []) ? $q->options : json_decode((string)($q->options ?? '[]'), true) ?? []; @endphp
-                                            @foreach ($options as $optIdx => $opt)
-                                                <div class="form-check mb-2">
-                                                    <input class="form-check-input" type="radio" name="answers[{{ $q->id }}]" id="q{{ $q->id }}_{{ $optIdx }}" value="{{ $optIdx }}">
-                                                    <label class="form-check-label" for="q{{ $q->id }}_{{ $optIdx }}">{{ $opt }}</label>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
+@section('title', 'Assessment Details')
+
+@section('content')
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Assessment Header -->
+            <div class="card mb-4 border-0 shadow-lg">
+                <div class="card-header bg-gradient-primary text-white py-4">
+                    <h2 class="mb-0"><i class="fas fa-clipboard-check"></i> {{ $assessment->title }}</h2>
+                </div>
+                <div class="card-body p-4">
+                    @if($assessment->description)
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle"></i> {{ $assessment->description }}
+                    </div>
+                    @endif
+
+                    <h5 class="mb-3"><i class="fas fa-list-check"></i> Assessment Details</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="info-box">
+                                <i class="fas fa-tag text-primary"></i>
+                                <div>
+                                    <small class="text-muted">Category</small>
+                                    <p class="mb-0"><strong>{{ $assessment->category }}</strong></p>
                                 </div>
                             </div>
-                        @endforeach
-                    </div>
-                    
-                    <div class="d-flex justify-content-between align-items-center mt-4">
-                        <button type="button" class="btn btn-outline-secondary" id="prevBtn" disabled>Previous</button>
-                        <div>
-                            @for ($i = 1; $i <= count($questions); $i++)
-                                <button type="button" class="btn btn-sm btn-outline-primary jumpBtn" data-jump="{{ $i }}">{{ $i }}</button>
-                            @endfor
                         </div>
-                        <button type="button" class="btn btn-outline-secondary" id="nextBtn">Next</button>
-                        <button type="submit" class="btn btn-success ms-2" id="submitBtn">Submit Assessment</button>
+                        <div class="col-md-6">
+                            <div class="info-box">
+                                <i class="fas fa-clock text-warning"></i>
+                                <div>
+                                    <small class="text-muted">Duration</small>
+                                    <p class="mb-0"><strong>{{ $assessment->duration }} minutes</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-box">
+                                <i class="fas fa-question-circle text-info"></i>
+                                <div>
+                                    <small class="text-muted">Total Questions</small>
+                                    <p class="mb-0"><strong>{{ $assessment->questions->count() }}</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-box">
+                                <i class="fas fa-star text-success"></i>
+                                <div>
+                                    <small class="text-muted">Total Marks</small>
+                                    <p class="mb-0"><strong>{{ $assessment->total_marks }}</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-box">
+                                <i class="fas fa-chart-line text-danger"></i>
+                                <div>
+                                    <small class="text-muted">Pass Percentage</small>
+                                    <p class="mb-0"><strong>{{ $assessment->pass_percentage }}%</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-box">
+                                <i class="fas fa-signal text-warning"></i>
+                                <div>
+                                    <small class="text-muted">Difficulty Level</small>
+                                    <p class="mb-0"><strong>{{ ucfirst($assessment->difficulty_level) }}</strong></p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </form>
+
+                    <h5 class="mb-3"><i class="fas fa-exclamation-triangle"></i> Important Instructions</h5>
+                    <ul class="list-group mb-4">
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success"></i> 
+                            Read each question carefully before answering
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-clock text-warning"></i> 
+                            You have <strong>{{ $assessment->duration }} minutes</strong> to complete the assessment
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-save text-info"></i> 
+                            Your progress will be auto-saved periodically
+                        </li>
+                        @if($assessment->allow_multiple_attempts)
+                        <li class="list-group-item">
+                            <i class="fas fa-redo text-primary"></i> 
+                            Multiple attempts are allowed for this assessment
+                        </li>
+                        @else
+                        <li class="list-group-item">
+                            <i class="fas fa-ban text-danger"></i> 
+                            Only <strong>one attempt</strong> is allowed for this assessment
+                        </li>
+                        @endif
+                        @if($assessment->show_results_immediately)
+                        <li class="list-group-item">
+                            <i class="fas fa-eye text-success"></i> 
+                            Results will be shown immediately after submission
+                        </li>
+                        @endif
+                        @if($assessment->show_correct_answers)
+                        <li class="list-group-item">
+                            <i class="fas fa-lightbulb text-warning"></i> 
+                            Correct answers will be shown in the results
+                        </li>
+                        @endif
+                        <li class="list-group-item">
+                            <i class="fas fa-exclamation-triangle text-danger"></i> 
+                            Make sure you have a stable internet connection
+                        </li>
+                    </ul>
+
+                    <!-- Start Button -->
+                    <form action="{{ route('student.assessments.start', $assessment) }}" method="POST">
+                        @csrf
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-lg btn-success" onclick="return confirm('Are you ready to start the assessment? The timer will begin immediately.')">
+                                <i class="fas fa-play-circle"></i> Start Assessment Now
+                            </button>
+                            <a href="{{ route('student.assessments.index') }}" class="btn btn-lg btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Assessments
+                            </a>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
+</div>
+@endsection
 
-    <script>
-        let currentQ = 1;
-        const totalQ = {{ count($questions) }};
-        function showQ(idx) {
-            document.querySelectorAll('.question-block').forEach((el, i) => {
-                el.style.display = (i+1) === idx ? 'block' : 'none';
-            });
-            document.getElementById('currentQ').innerText = idx;
-            document.getElementById('prevBtn').disabled = idx === 1;
-            document.getElementById('nextBtn').disabled = idx === totalQ;
-        }
-        document.getElementById('prevBtn').onclick = function() { if(currentQ>1) showQ(--currentQ); };
-        document.getElementById('nextBtn').onclick = function() { if(currentQ<totalQ) showQ(++currentQ); };
-        document.querySelectorAll('.jumpBtn').forEach(btn => {
-            btn.onclick = function() { currentQ = parseInt(this.dataset.jump); showQ(currentQ); };
-        });
+@section('styles')
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
 
-        // Timer from assessment settings
-        let seconds = ({{ (int)($assessment->time_limit ?? 30) }}) * 60;
-        let elapsed = 0;
-        function updateTimer() {
-            let m = Math.floor(seconds/60), s = seconds%60;
-            document.getElementById('timer').innerText = `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-            if(seconds>0) { seconds--; elapsed++; document.getElementById('time_taken').value = elapsed; setTimeout(updateTimer, 1000); }
-            else { document.getElementById('time_taken').value = elapsed; document.getElementById('assessmentForm').submit(); }
-        }
-        updateTimer();
-    </script>
-</x-app-layout>
+.info-box {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    border-left: 4px solid #667eea;
+}
+
+.info-box i {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.info-box small {
+    font-size: 0.75rem;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.info-box p {
+    font-size: 1rem;
+}
+
+.card {
+    border-radius: 1rem;
+}
+
+.list-group-item {
+    border-left: 3px solid transparent;
+    padding-left: 1rem;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+    border-left-color: #667eea;
+}
+
+.btn-lg {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.shadow-lg {
+    box-shadow: 0 1rem 3rem rgba(0,0,0,.175)!important;
+}
+</style>
+@endsection

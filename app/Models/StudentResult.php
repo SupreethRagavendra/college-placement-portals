@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Cache;
 
 class StudentResult extends Model
 {
@@ -45,12 +46,14 @@ class StudentResult extends Model
     }
 
     /**
-     * Get score as percentage
+     * Get score as percentage (cached)
      */
     public function getScorePercentageAttribute(): float
     {
-        if ($this->total_questions == 0) return 0;
-        return round(($this->score / $this->total_questions) * 100, 2);
+        return Cache::remember("result_score_percentage_{$this->id}", 300, function() {
+            if ($this->total_questions == 0) return 0;
+            return round(($this->score / $this->total_questions) * 100, 2);
+        });
     }
 
     /**
@@ -79,28 +82,32 @@ class StudentResult extends Model
     }
 
     /**
-     * Get grade based on percentage
+     * Get grade based on percentage (cached)
      */
     public function getGradeAttribute(): string
     {
-        $percentage = $this->score_percentage;
-        
-        if ($percentage >= 90) return 'A+';
-        if ($percentage >= 80) return 'A';
-        if ($percentage >= 70) return 'B+';
-        if ($percentage >= 60) return 'B';
-        if ($percentage >= 50) return 'C';
-        if ($percentage >= 40) return 'D';
-        
-        return 'F';
+        return Cache::remember("result_grade_{$this->id}", 300, function() {
+            $percentage = $this->score_percentage;
+            
+            if ($percentage >= 90) return 'A+';
+            if ($percentage >= 80) return 'A';
+            if ($percentage >= 70) return 'B+';
+            if ($percentage >= 60) return 'B';
+            if ($percentage >= 50) return 'C';
+            if ($percentage >= 40) return 'D';
+            
+            return 'F';
+        });
     }
 
     /**
-     * Check if the result is a pass
+     * Check if the result is a pass (cached)
      */
     public function getIsPassAttribute(): bool
     {
-        return $this->score_percentage >= 50; // 50% is pass
+        return Cache::remember("result_is_pass_{$this->id}", 300, function() {
+            return $this->score_percentage >= 50; // 50% is pass
+        });
     }
 
     /**
