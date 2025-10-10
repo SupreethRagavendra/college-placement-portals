@@ -36,3 +36,22 @@ Homestead.yaml
 Thumbs.db
 npm-debug.log
 yarn-error.log
+
+# Archive directory (documentation cleanup)
+/archive/
+
+# Backup files
+*.backup
+*_backup.*
+.env.backup*
+
+# Test files
+test-*.php
+test_*.php
+check-*.php
+debug-*.php
+
+# Temporary files
+*cookies.txt
+*.tmp
+*.temp
