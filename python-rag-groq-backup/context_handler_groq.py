@@ -18,7 +18,7 @@ class ContextHandler:
     """Handle context-aware query processing with Groq AI"""
     
     def __init__(self, groq_api_key: str, groq_model: str, chroma_client: chromadb.ClientAPI):
-        self.groq_client = Groq(api_key=groq_api_key)
+        self.groq_client = Groq(api_key=groq_api_key or 'your_groq_api_key_here')
         self.groq_model = groq_model
         self.chroma_client = chroma_client
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')

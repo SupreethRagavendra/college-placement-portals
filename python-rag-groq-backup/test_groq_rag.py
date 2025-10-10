@@ -18,7 +18,7 @@ load_dotenv()
 
 # Configuration
 RAG_SERVICE_URL = "http://localhost:8001"
-GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', 'your_groq_api_key_here')
 GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
 
 # Test student ID (use a valid student ID from your database)
@@ -52,7 +52,7 @@ def test_groq_direct():
     print_header("TEST 1: Direct Groq API Connection")
     
     try:
-        client = Groq(api_key=GROQ_API_KEY)
+        client = Groq(api_key=GROQ_API_KEY or 'your_groq_api_key_here')
         
         response = client.chat.completions.create(
             messages=[

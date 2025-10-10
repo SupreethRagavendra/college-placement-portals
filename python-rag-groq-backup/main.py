@@ -60,7 +60,7 @@ logger.info(f"ChromaDB initialized at {chromadb_path}")
 # Initialize services
 try:
     context_handler = ContextHandler(
-        groq_api_key=os.getenv('GROQ_API_KEY'),
+        groq_api_key=os.getenv('GROQ_API_KEY', 'your_groq_api_key_here'),
         groq_model=os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile'),
         chroma_client=chroma_client
     )
@@ -341,7 +341,7 @@ async def test_groq():
     try:
         from groq import Groq
         
-        groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+        groq_client = Groq(api_key=os.getenv('GROQ_API_KEY', 'your_groq_api_key_here'))
         response = groq_client.chat.completions.create(
             messages=[
                 {

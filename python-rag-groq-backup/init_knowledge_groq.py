@@ -24,7 +24,7 @@ load_dotenv()
 def test_groq_connection():
     """Test Groq API connection"""
     try:
-        groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+        groq_client = Groq(api_key=os.getenv('GROQ_API_KEY', 'your_groq_api_key_here'))
         response = groq_client.chat.completions.create(
             messages=[{"role": "user", "content": "Hello"}],
             model=os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile'),
