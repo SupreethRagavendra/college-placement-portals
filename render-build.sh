@@ -29,8 +29,13 @@ php artisan view:clear || true
 php artisan route:clear || true
 
 # 5. Generate application key if not exists
-echo "🔑 Generating application key..."
-php artisan key:generate --force --no-interaction
+echo "🔑 Checking application key..."
+if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
+    echo "⚠️  APP_KEY not set or empty, generating new key..."
+    php artisan key:generate --force --no-interaction --show
+else
+    echo "✅ APP_KEY already set"
+fi
 
 # 6. Install Node dependencies and build assets
 echo "🎨 Building frontend assets..."

@@ -1,5 +1,16 @@
 # 🚨 QUICK FIX: Render 500 Error
 
+## ⚠️ If You See "xlhm8" or Garbled Text in Logs
+
+This usually means:
+1. **APP_KEY is missing or invalid** - The encryption key is not set
+2. **PHP process crashed** - Before proper error logging could occur
+3. **Database connection failed** - Can't connect to Supabase
+
+**Quick Fix:** Follow the steps below to set proper environment variables and enable debug mode.
+
+---
+
 ## Immediate Actions (Do These Now!)
 
 ### 1. Set Environment Variables in Render Dashboard
@@ -71,6 +82,7 @@ In Render Environment tab:
 ```
 APP_DEBUG=true
 LOG_LEVEL=debug
+LOG_CHANNEL=stack
 ```
 
 Then redeploy and check the error message on the website.
@@ -79,6 +91,25 @@ Then redeploy and check the error message on the website.
 ```
 APP_DEBUG=false
 LOG_LEVEL=error
+LOG_CHANNEL=stderr
+```
+
+### 6. Run Diagnostics (Advanced)
+
+If you have access to Render Shell:
+
+```bash
+# Navigate to app directory
+cd /opt/render/project/src
+
+# Run diagnostic script
+bash render-diagnose.sh
+
+# Or manually check APP_KEY
+echo $APP_KEY
+
+# Test database connection
+php artisan tinker --execute="DB::connection()->getPdo();"
 ```
 
 ## Common Errors & Quick Fixes

@@ -10,15 +10,17 @@ services:
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
-        value: false
+        value: true
       - key: APP_URL
         sync: false
       - key: APP_KEY
         generateValue: true
       - key: LOG_CHANNEL
-        value: stderr
+        value: stack
       - key: LOG_LEVEL
-        value: error
+        value: debug
+      - key: LOG_STACK
+        value: single,stderr
       - key: CACHE_DRIVER
         value: file
       - key: SESSION_DRIVER
