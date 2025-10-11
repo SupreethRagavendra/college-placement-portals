@@ -45,11 +45,11 @@ services:
       - key: DB_SSLMODE
         value: require
       
-      # Cache & Session
+      # Cache & Session - Using cookie driver for better reliability in Docker
       - key: CACHE_DRIVER
         value: file
       - key: SESSION_DRIVER
-        value: file
+        value: cookie
       - key: SESSION_LIFETIME
         value: 120
       - key: SESSION_ENCRYPT
@@ -60,6 +60,8 @@ services:
         value: true
       - key: SESSION_SAME_SITE
         value: lax
+      - key: SESSION_DOMAIN
+        value: .onrender.com
       - key: QUEUE_CONNECTION
         value: sync
       

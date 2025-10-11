@@ -69,6 +69,11 @@ php artisan cache:clear
 php artisan view:clear
 php artisan route:clear
 
+# Ensure storage directories have proper permissions before migrations
+echo "🔐 Setting storage permissions..."
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
 # Run database migrations only if connected
 if [ "$DB_CONNECTED" = "true" ]; then
     echo "🗄️  Running database migrations..."
@@ -79,20 +84,31 @@ else
     echo "⚠️  Skipping migrations - database not available"
 fi
 
-# Cache configuration for production
-echo "⚡ Caching configuration..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+# Cache only routes and views, NOT config (to allow runtime env vars for sessions)
+echo "⚡ Caching routes and views..."
+php artisan route:cache || echo "⚠️  Route caching failed - continuing..."
+php artisan view:cache || echo "⚠️  View caching failed - continuing..."
 
 # Create storage link
 echo "🔗 Creating storage link..."
 php artisan storage:link || true
 
-# Set proper permissions
-echo "🔐 Setting permissions..."
+# Final permission check
+echo "🔐 Final permission check..."
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Test session functionality
+echo "🧪 Testing session functionality..."
+php -r "
+try {
+    session_start();
+    \$_SESSION['test'] = 'working';
+    echo '✅ Session test passed';
+} catch (Exception \$e) {
+    echo '⚠️  Session test failed: ' . \$e->getMessage();
+}
+" || echo "⚠️  Session test encountered an error"
 
 echo "✅ Laravel application ready!"
 echo "🌐 Starting Nginx and PHP-FPM..."

@@ -36,6 +36,29 @@ class SupabaseAuthController extends Controller
      */
     public function register(Request $request): RedirectResponse
     {
+        // Test session functionality before proceeding
+        try {
+            if (!$request->session()->isStarted()) {
+                $request->session()->start();
+            }
+            $request->session()->put('_test', 'working');
+            $test = $request->session()->get('_test');
+            $request->session()->forget('_test');
+            
+            if ($test !== 'working') {
+                throw new \RuntimeException('Session test failed');
+            }
+        } catch (\Exception $e) {
+            \Log::error('Session initialization failed during registration', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->withErrors([
+                'email' => 'Session error. Please clear your browser cookies and try again.'
+            ])->withInput($request->except('password', 'password_confirmation'));
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
@@ -126,6 +149,29 @@ class SupabaseAuthController extends Controller
      */
     public function login(Request $request): RedirectResponse
     {
+        // Test session functionality before proceeding
+        try {
+            if (!$request->session()->isStarted()) {
+                $request->session()->start();
+            }
+            $request->session()->put('_test', 'working');
+            $test = $request->session()->get('_test');
+            $request->session()->forget('_test');
+            
+            if ($test !== 'working') {
+                throw new \RuntimeException('Session test failed');
+            }
+        } catch (\Exception $e) {
+            \Log::error('Session initialization failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->withErrors([
+                'email' => 'Session error. Please clear your browser cookies and try again.'
+            ])->withInput($request->only('email'));
+        }
+
         \Log::info('Login attempt started', [
             'email' => $request->input('email'),
             'ip' => $request->ip(),
