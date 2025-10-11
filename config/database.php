@@ -97,9 +97,10 @@ return [
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'require'), // Changed to 'require' for Supabase
             'options' => [
-                PDO::ATTR_TIMEOUT => 5, // Connection timeout in seconds
+                PDO::ATTR_TIMEOUT => 10, // Increased connection timeout to 10 seconds
                 PDO::ATTR_PERSISTENT => false, // Disable persistent connections for Supabase
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_EMULATE_PREPARES => false, // Use native prepared statements
             ],
         ],
 

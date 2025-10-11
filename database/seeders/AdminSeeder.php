@@ -24,7 +24,23 @@ class AdminSeeder extends Seeder
                 'password' => Hash::make('Admin@123'),
                 'role' => 'admin',
                 'email_verified_at' => now(),
+                'is_verified' => true,
+                'is_approved' => true,
+                'status' => 'approved',
+                'admin_approved_at' => now(),
             ]);
+            
+            echo "✅ Admin user created: admin@portal.com / Admin@123\n";
+        } else {
+            // Update existing admin to ensure all fields are set
+            $admin->update([
+                'is_verified' => true,
+                'is_approved' => true,
+                'status' => 'approved',
+                'admin_approved_at' => $admin->admin_approved_at ?? now(),
+            ]);
+            
+            echo "✅ Admin user already exists and updated\n";
         }
     }
 }

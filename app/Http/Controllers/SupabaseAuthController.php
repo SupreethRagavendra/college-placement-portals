@@ -196,8 +196,16 @@ class SupabaseAuthController extends Controller
             return back()->withErrors(['email' => 'Invalid credentials.']);
 
         } catch (\Exception $e) {
-            \Log::error('Login error', ['error' => $e->getMessage(), 'email' => $credentials['email']]);
-            return back()->withErrors(['email' => 'Login failed. Please try again.']);
+            \Log::error('Login error', [
+                'error' => $e->getMessage(),
+                'email' => $credentials['email'],
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // More user-friendly error message
+            return back()->withErrors([
+                'email' => 'Unable to process login request. Please check your credentials and try again.'
+            ]);
         }
     }
 

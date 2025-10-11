@@ -27,13 +27,13 @@ services:
       - key: LOG_DEPRECATIONS_CHANNEL
         value: null
       
-      # Database (Supabase PostgreSQL)
+      # Database (Supabase PostgreSQL) - Using direct connection for better reliability
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
-        value: aws-0-ap-south-1.pooler.supabase.com
+        value: db.wkqbukidxmzbgwauncrl.supabase.co
       - key: DB_PORT
-        value: 6543
+        value: 5432
       - key: DB_DATABASE
         value: postgres
       - key: DB_USERNAME
@@ -100,11 +100,11 @@ services:
       - key: DEBUG
         value: false
       
-      # Database Connection (for knowledge sync)
+      # Database Connection (for knowledge sync) - Using direct connection
       - key: DB_HOST
-        value: aws-0-ap-south-1.pooler.supabase.com
+        value: db.wkqbukidxmzbgwauncrl.supabase.co
       - key: DB_PORT
-        value: 6543
+        value: 5432
       - key: DB_NAME
         value: postgres
       - key: DB_USER

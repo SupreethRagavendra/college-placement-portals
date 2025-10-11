@@ -50,6 +50,10 @@ npm run build
 echo "🗄️ Running database migrations..."
 php artisan migrate --force --no-interaction
 
+# 7.5. Seed admin user
+echo "👤 Seeding admin user..."
+php artisan db:seed --class=AdminSeeder --force --no-interaction || echo "⚠️  Seeder already ran or failed, continuing..."
+
 # 8. Cache configuration for production
 echo "⚡ Caching configuration..."
 php artisan config:cache
