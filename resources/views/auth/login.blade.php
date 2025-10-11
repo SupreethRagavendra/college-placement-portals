@@ -150,8 +150,9 @@
                             </div>
                         @endif
 
-                        <form method="POST" action="{{ route('login') }}" accept-charset="UTF-8">
+                        <form method="POST" action="{{ route('login') }}" accept-charset="UTF-8" id="loginForm">
                             @csrf
+                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
                             
                             <!-- Email Address -->
                             <div class="mb-3">

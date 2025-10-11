@@ -24,6 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust proxies for Render deployment
         $middleware->trustProxies(at: '*');
         
+        // Use custom CSRF middleware for better debugging
+        $middleware->validateCsrfTokens(except: [
+            // Add any routes that should be excluded from CSRF verification
+        ]);
+        
         // Add response optimization to web middleware
         $middleware->web(append: [
             \App\Http\Middleware\OptimizeResponse::class,

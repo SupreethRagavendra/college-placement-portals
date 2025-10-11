@@ -16,6 +16,9 @@ mkdir -p bootstrap/cache
 # 2. Set proper permissions
 echo "🔐 Setting permissions..."
 chmod -R 775 storage bootstrap/cache
+# Ensure session directory exists and is writable
+mkdir -p storage/framework/sessions
+chmod -R 777 storage/framework/sessions
 
 # 3. Install PHP dependencies
 echo "📦 Installing PHP dependencies..."
@@ -33,12 +36,20 @@ echo "🔑 Checking application key..."
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
     echo "⚠️  APP_KEY not set or empty, generating new key..."
     # Generate a key and export it for the current session
-    NEW_KEY=$(php artisan key:generate --force --no-interaction --show)
-    export APP_KEY=$NEW_KEY
-    echo "Generated APP_KEY: $NEW_KEY"
-    echo "⚠️  IMPORTANT: Add this key to your Render environment variables!"
+    php artisan key:generate --force --no-interaction
+    echo "✅ New APP_KEY generated"
+    echo "⚠️  IMPORTANT: This key is now set. Do not regenerate in production!"
 else
     echo "✅ APP_KEY already set"
+fi
+
+# Test if key works
+echo "🔍 Verifying APP_KEY..."
+if php artisan config:show app.key | grep -q "base64:"; then
+    echo "✅ APP_KEY is valid"
+else
+    echo "⚠️  APP_KEY might be invalid, regenerating..."
+    php artisan key:generate --force --no-interaction
 fi
 
 # 6. Install Node dependencies and build assets
