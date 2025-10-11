@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'optimize' => \App\Http\Middleware\OptimizeResponse::class,
         ]);
         
+        // Trust proxies for Render deployment
+        $middleware->trustProxies(at: '*');
+        
         // Add response optimization to web middleware
         $middleware->web(append: [
             \App\Http\Middleware\OptimizeResponse::class,

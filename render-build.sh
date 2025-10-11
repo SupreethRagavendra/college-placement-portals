@@ -32,7 +32,11 @@ php artisan route:clear || true
 echo "🔑 Checking application key..."
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
     echo "⚠️  APP_KEY not set or empty, generating new key..."
-    php artisan key:generate --force --no-interaction --show
+    # Generate a key and export it for the current session
+    NEW_KEY=$(php artisan key:generate --force --no-interaction --show)
+    export APP_KEY=$NEW_KEY
+    echo "Generated APP_KEY: $NEW_KEY"
+    echo "⚠️  IMPORTANT: Add this key to your Render environment variables!"
 else
     echo "✅ APP_KEY already set"
 fi
