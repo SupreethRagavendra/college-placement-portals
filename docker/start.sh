@@ -3,13 +3,21 @@ set -e
 
 echo "🚀 Starting Laravel application..."
 
-# Wait for database to be ready
+# Wait for database to be ready (with timeout)
 echo "⏳ Waiting for database connection..."
-until php artisan db:show 2>/dev/null; do
-    echo "Database not ready, waiting..."
+MAX_RETRIES=30
+RETRY_COUNT=0
+until php artisan db:show 2>/dev/null || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+    echo "Database not ready, waiting... (attempt $RETRY_COUNT/$MAX_RETRIES)"
     sleep 2
+    RETRY_COUNT=$((RETRY_COUNT + 1))
 done
-echo "✅ Database connection established"
+
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+    echo "⚠️  Database connection timeout - continuing anyway"
+else
+    echo "✅ Database connection established"
+fi
 
 # Generate APP_KEY if not set
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
