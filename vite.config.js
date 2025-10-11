@@ -9,15 +9,8 @@ export default defineConfig({
         }),
     ],
     build: {
-        // Production optimizations
-        minify: 'terser',
-        terserOptions: {
-            compress: {
-                drop_console: true, // Remove console.logs in production
-                drop_debugger: true,
-                pure_funcs: ['console.log', 'console.info'], // Remove specific console methods
-            },
-        },
+        // Production optimizations - using esbuild (faster, no extra dependency)
+        minify: 'esbuild',
         rollupOptions: {
             output: {
                 manualChunks: {
