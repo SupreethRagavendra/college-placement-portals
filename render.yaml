@@ -71,6 +71,12 @@ services:
       - key: TRUSTED_PROXIES
         value: "*"
       
+      # PHP Configuration
+      - key: PHP_MEMORY_LIMIT
+        value: 256M
+      - key: PHP_MAX_EXECUTION_TIME
+        value: 60
+      
       # RAG Service Connection
       - key: RAG_SERVICE_URL
         fromService:
