@@ -126,6 +126,12 @@ class SupabaseAuthController extends Controller
      */
     public function login(Request $request): RedirectResponse
     {
+        \Log::info('Login attempt started', [
+            'email' => $request->input('email'),
+            'has_password' => !empty($request->input('password')),
+            'ip' => $request->ip(),
+        ]);
+
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
@@ -168,11 +174,23 @@ class SupabaseAuthController extends Controller
                 // Log Supabase error and fall back to local authentication
                 \Log::warning('Supabase auth failed, falling back to local auth', [
                     'error' => $supabaseError->getMessage(),
+                    'error_type' => get_class($supabaseError),
                     'email' => $credentials['email']
                 ]);
                 
                 // Fallback to local authentication
-                $user = User::where('email', $credentials['email'])->first();
+                try {
+                    $user = User::where('email', $credentials['email'])->first();
+                } catch (\Exception $dbError) {
+                    \Log::error('Database query failed in login fallback', [
+                        'error' => $dbError->getMessage(),
+                        'trace' => $dbError->getTraceAsString()
+                    ]);
+                    
+                    return back()->withErrors([
+                        'email' => 'Unable to connect to database. Please try again later.'
+                    ]);
+                }
                 
                 if ($user && Hash::check($credentials['password'], $user->password)) {
                     // Check if user is verified and approved

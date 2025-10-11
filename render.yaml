@@ -23,9 +23,11 @@ services:
       - key: LOG_CHANNEL
         value: stderr
       - key: LOG_LEVEL
-        value: info
+        value: debug
       - key: LOG_DEPRECATIONS_CHANNEL
         value: null
+      - key: LOG_STACK
+        value: single
       
       # Database (Supabase PostgreSQL) - Using direct connection for better reliability
       - key: DB_CONNECTION
