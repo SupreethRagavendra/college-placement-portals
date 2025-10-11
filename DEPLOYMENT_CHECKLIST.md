@@ -1,6 +1,6 @@
-# ✅ Render Deployment Checklist
+# ✅ Render Docker Deployment Checklist
 
-Use this checklist to ensure a successful deployment of your College Placement Portal to Render.
+Complete checklist for deploying College Placement Portal + RAG Service to Render using Docker.
 
 ## 📋 Pre-Deployment Checklist
 
@@ -8,8 +8,10 @@ Use this checklist to ensure a successful deployment of your College Placement P
 - [ ] All code is committed to GitHub repository
 - [ ] `.env` file is not committed (check .gitignore)
 - [ ] `render.yaml` file is created and committed
-- [ ] `Dockerfile` is updated for Render
-- [ ] `deploy.sh` script is created
+- [ ] `Dockerfile` is created for Laravel
+- [ ] `python-rag/Dockerfile` is created for RAG service
+- [ ] `.dockerignore` file is created
+- [ ] All Docker config files in `docker/` directory
 - [ ] `.env.example` file exists with all required variables
 
 ### Environment Variables Preparation
@@ -31,73 +33,71 @@ Use this checklist to ensure a successful deployment of your College Placement P
 - [ ] Select repository: `college-placement-portal`
 - [ ] Choose branch: `main` (or your default branch)
 
-### Step 3: Configure Build Settings
+### Step 3: Configure Laravel Service Settings
 - [ ] **Name**: `college-placement-portal`
-- [ ] **Environment**: `PHP`
-- [ ] **Region**: Choose closest to your users
-- [ ] **Plan**: `Free` (or upgrade if needed)
-- [ ] **Build Command**: 
-  ```bash
-  composer install --no-dev --optimize-autoloader
-  php artisan key:generate --force
-  php artisan config:cache
-  php artisan route:cache
-  php artisan view:cache
-  npm ci
-  npm run build
-  ```
-- [ ] **Start Command**: 
-  ```bash
-  php artisan serve --host=0.0.0.0 --port=$PORT
-  ```
+- [ ] **Runtime**: `Docker`
+- [ ] **Region**: `Oregon (US West)`
+- [ ] **Plan**: `Free`
+- [ ] **Health Check Path**: `/healthz`
+- [ ] **Auto-Deploy**: `Yes` (main branch)
+- [ ] Dockerfile will handle build automatically
 
-### Step 4: Set Environment Variables
-- [ ] `APP_NAME` = "College Placement Portal"
-- [ ] `APP_ENV` = "production"
-- [ ] `APP_DEBUG` = "false"
-- [ ] `APP_URL` = "https://your-app-name.onrender.com"
-- [ ] `LOG_CHANNEL` = "stderr"
-- [ ] `DB_CONNECTION` = "pgsql"
-- [ ] `DB_HOST` = "db.wkqbukidxmzbgwauncrl.supabase.co"
-- [ ] `DB_PORT` = "5432"
-- [ ] `DB_DATABASE` = "postgres"
-- [ ] `DB_USERNAME` = "postgres"
-- [ ] `DB_PASSWORD` = "Supreeeth24#"
-- [ ] `DB_SSLMODE` = "require"
-- [ ] `MAIL_MAILER` = "smtp"
-- [ ] `MAIL_HOST` = "smtp.gmail.com" (or your SMTP service)
-- [ ] `MAIL_PORT` = "587"
-- [ ] `MAIL_USERNAME` = "your-email@gmail.com"
-- [ ] `MAIL_PASSWORD` = "your-app-password"
-- [ ] `MAIL_ENCRYPTION` = "tls"
-- [ ] `MAIL_FROM_ADDRESS` = "your-email@gmail.com"
-- [ ] `MAIL_FROM_NAME` = "${APP_NAME}"
-- [ ] `CACHE_DRIVER` = "file"
-- [ ] `SESSION_DRIVER` = "file"
-- [ ] `QUEUE_CONNECTION` = "sync"
+### Step 4: Set Laravel Environment Variables (CRITICAL)
+**Only these need to be set manually in Render:**
+- [ ] `APP_KEY` = `base64:Tru9xzXURTw16wL/3WUX/Ok5WYYcuDCvPxgdXWq+g/4=`
+- [ ] `DB_PASSWORD` = `Supreeeth24#`
+- [ ] `GROQ_API_KEY` = `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`
 
-### Step 5: Deploy
-- [ ] Click "Create Web Service"
-- [ ] Wait for build to complete (5-10 minutes)
+**Note**: All other variables are configured in `render.yaml`
+
+### Step 5: Create RAG Service
+- [ ] Click "New +" → "Web Service"
+- [ ] Connect same GitHub repository
+- [ ] **Name**: `rag-service`
+- [ ] **Runtime**: `Docker`
+- [ ] **Dockerfile Path**: `./python-rag/Dockerfile`
+- [ ] **Docker Context**: `./python-rag`
+- [ ] **Region**: `Oregon (US West)`
+- [ ] **Plan**: `Free`
+- [ ] **Health Check Path**: `/health`
+- [ ] **Auto-Deploy**: `Yes` (main branch)
+
+### Step 6: Set RAG Service Environment Variables (CRITICAL)
+**Only these need to be set manually:**
+- [ ] `DB_PASSWORD` = `Supreeeth24#`
+- [ ] `OPENROUTER_API_KEY` = `your_openrouter_api_key_here`
+
+**Note**: All other variables are configured in `render.yaml`
+
+### Step 7: Deploy Both Services
+- [ ] Push code to GitHub: `git push origin main`
+- [ ] Both services will auto-deploy
+- [ ] Wait for builds to complete (10-15 minutes total)
 - [ ] Check build logs for any errors
-- [ ] Note the deployment URL
+- [ ] Note both deployment URLs
 
-### Step 6: Database Setup
-- [ ] Go to service dashboard
-- [ ] Click "Shell" tab
-- [ ] Run: `php artisan migrate --force`
-- [ ] Run: `php artisan db:seed --class=AdminSeeder --force`
-- [ ] Verify database tables created
+### Step 8: Verify Deployment
+**Test Laravel Service:**
+- [ ] Health check: `https://college-placement-portals.onrender.com/healthz`
+- [ ] Database test: `https://college-placement-portals.onrender.com/test-db`
+- [ ] Main site: `https://college-placement-portals.onrender.com/`
 
-### Step 7: Test Deployment
-- [ ] Visit your Render URL
-- [ ] Test registration functionality
-- [ ] Check if verification email is sent
-- [ ] Test login with admin credentials:
-  - Email: `admin@portal.com`
-  - Password: `Admin@123`
-- [ ] Test student registration and login
-- [ ] Verify all pages load correctly
+**Test RAG Service:**
+- [ ] Health check: `https://rag-service.onrender.com/health`
+
+### Step 9: Database Migrations (Auto-runs in start.sh)
+**Migrations run automatically on startup, but verify:**
+- [ ] Check logs for "Running database migrations"
+- [ ] Check logs for "✅ Laravel application ready!"
+- [ ] If needed, run manually in Shell: `php artisan migrate --force`
+
+### Step 10: Test Full Application
+- [ ] Landing page loads with styling
+- [ ] Registration form works
+- [ ] Login works
+- [ ] Admin dashboard accessible
+- [ ] Student dashboard accessible
+- [ ] RAG chatbot responds (if configured)
 
 ## 🧪 Post-Deployment Testing
 

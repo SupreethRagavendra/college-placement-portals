@@ -1,26 +1,49 @@
 services:
+  # Main Laravel Application
   - type: web
     name: college-placement-portal
-    env: php
+    runtime: docker
     plan: free
-    buildCommand: bash render-build.sh
-    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT --no-reload
-    healthCheckPath: /health.php
+    region: oregon
+    healthCheckPath: /healthz
     envVars:
+      # Application
+      - key: APP_NAME
+        value: College Placement Portal
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
-        value: true
+        value: false
       - key: APP_URL
         value: https://college-placement-portals.onrender.com
       - key: APP_KEY
         sync: false
+      
+      # Logging
       - key: LOG_CHANNEL
-        value: stack
+        value: stderr
       - key: LOG_LEVEL
-        value: debug
-      - key: LOG_STACK
-        value: single,stderr
+        value: info
+      - key: LOG_DEPRECATIONS_CHANNEL
+        value: null
+      
+      # Database (Supabase PostgreSQL)
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        value: db.wkqbukidxmzbgwauncrl.supabase.co
+      - key: DB_PORT
+        value: 6543
+      - key: DB_DATABASE
+        value: postgres
+      - key: DB_USERNAME
+        value: postgres.wkqbukidxmzbgwauncrl
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSLMODE
+        value: require
+      
+      # Cache & Session
       - key: CACHE_DRIVER
         value: file
       - key: SESSION_DRIVER
@@ -35,19 +58,74 @@ services:
         value: lax
       - key: QUEUE_CONNECTION
         value: sync
+      
+      # Security
       - key: TRUSTED_PROXIES
         value: "*"
-      - key: DB_CONNECTION
-        value: pgsql
+      
+      # RAG Service Connection
+      - key: RAG_SERVICE_URL
+        fromService:
+          type: web
+          name: rag-service
+          property: host
+      - key: RAG_SERVICE_TIMEOUT
+        value: 30
+      - key: RAG_ENABLED
+        value: true
+      
+      # Groq API (for RAG)
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GROQ_TEMPERATURE
+        value: 0.7
+      - key: GROQ_MAX_TOKENS
+        value: 1024
+
+  # Python FastAPI RAG Service
+  - type: web
+    name: rag-service
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./python-rag/Dockerfile
+    dockerContext: ./python-rag
+    healthCheckPath: /health
+    envVars:
+      # Service Configuration
+      - key: PORT
+        value: 8001
+      - key: DEBUG
+        value: false
+      
+      # Database Connection (for knowledge sync)
       - key: DB_HOST
-        sync: false
+        value: db.wkqbukidxmzbgwauncrl.supabase.co
       - key: DB_PORT
-        value: 5432
-      - key: DB_DATABASE
-        sync: false
-      - key: DB_USERNAME
-        sync: false
+        value: 6543
+      - key: DB_NAME
+        value: postgres
+      - key: DB_USER
+        value: postgres.wkqbukidxmzbgwauncrl
       - key: DB_PASSWORD
         sync: false
       - key: DB_SSLMODE
         value: require
+      
+      # OpenRouter API
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: meta-llama/llama-3.1-70b-instruct
+      - key: OPENROUTER_TEMPERATURE
+        value: 0.7
+      - key: OPENROUTER_MAX_TOKENS
+        value: 1024
+      
+      # ChromaDB Configuration
+      - key: CHROMA_PERSIST_DIR
+        value: ./chromadb_storage
+      - key: CHROMA_COLLECTION_NAME
+        value: placement_knowledge

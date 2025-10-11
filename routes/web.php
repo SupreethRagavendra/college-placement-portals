@@ -70,6 +70,30 @@ Route::get('/test-supabase', function () {
     ]);
 });
 
+// Health check endpoint for Render
+Route::get('/healthz', function () {
+    try {
+        // Check database connection
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
+        
+        return response()->json([
+            'status' => 'healthy',
+            'timestamp' => now()->toIso8601String(),
+            'service' => 'college-placement-portal',
+            'database' => 'connected',
+            'app_env' => config('app.env')
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'unhealthy',
+            'timestamp' => now()->toIso8601String(),
+            'service' => 'college-placement-portal',
+            'database' => 'disconnected',
+            'error' => $e->getMessage()
+        ], 503);
+    }
+})->name('healthz');
+
 // Landing page
 Route::get('/', function () {
     return view('landing');
