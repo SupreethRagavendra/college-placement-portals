@@ -209,8 +209,15 @@
                                 </button>
                             </div>
 
-                            <!-- Register Link -->
+                            <!-- Forgot Password & Register Links -->
                             <div class="text-center">
+                                @if (Route::has('password.request'))
+                                    <p class="mb-2">
+                                        <a href="{{ route('password.request') }}" class="auth-link">
+                                            <i class="fas fa-key me-1"></i>Forgot your password?
+                                        </a>
+                                    </p>
+                                @endif
                                 <p class="mb-0">
                                     Don't have an account? 
                                     <a href="{{ route('register') }}" class="auth-link">

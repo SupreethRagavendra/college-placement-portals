@@ -19,7 +19,8 @@ class SupabaseService
     public function __construct()
     {
         $this->client = new Client([
-            'timeout' => 30,
+            'timeout' => 10, // Reduced timeout to 10 seconds for faster fallback
+            'connect_timeout' => 5, // 5 seconds for connection
             'verify' => false, // For development only
         ]);
         

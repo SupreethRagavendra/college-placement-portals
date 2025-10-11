@@ -122,7 +122,7 @@ class SupabaseAuthController extends Controller
     }
 
     /**
-     * Handle user login
+     * Handle user login with Supabase fallback to local auth
      */
     public function login(Request $request): RedirectResponse
     {
@@ -132,42 +132,72 @@ class SupabaseAuthController extends Controller
         ]);
 
         try {
-            // Authenticate with Supabase
-            $supabaseResponse = $this->supabaseService->signIn($credentials['email'], $credentials['password']);
+            // Try Supabase authentication first with timeout handling
+            try {
+                $supabaseResponse = $this->supabaseService->signIn($credentials['email'], $credentials['password']);
 
-            if (isset($supabaseResponse['access_token'])) {
-                // Get user from Supabase
-                $supabaseUser = $this->supabaseService->getUser($supabaseResponse['access_token']);
-                
-                if ($supabaseUser && isset($supabaseUser['email_confirmed_at']) && $supabaseUser['email_confirmed_at']) {
-                    // Find user in local database
-                    $user = User::where('email', $credentials['email'])->first();
+                if (isset($supabaseResponse['access_token'])) {
+                    // Get user from Supabase
+                    $supabaseUser = $this->supabaseService->getUser($supabaseResponse['access_token']);
                     
-                    if ($user) {
-                        // Check if user is verified and approved
-                        if (!$user->is_verified) {
-                            return back()->withErrors(['email' => 'Please verify your email before logging in.']);
-                        } elseif ($user->isAdmin() || $user->isApproved()) {
-                            // Login user
-                            Auth::login($user, $request->boolean('remember'));
-                            $request->session()->regenerate();
-                            
-                            return $this->redirectToDashboard();
-                        } elseif ($user->isPendingApproval()) {
-                            return back()->withErrors(['email' => 'Your account is pending admin approval. Please wait for approval before logging in.']);
-                        } elseif ($user->isRejected()) {
-                            return back()->withErrors(['email' => 'Your account has been rejected. Please contact support.']);
+                    if ($supabaseUser && isset($supabaseUser['email_confirmed_at']) && $supabaseUser['email_confirmed_at']) {
+                        // Find user in local database
+                        $user = User::where('email', $credentials['email'])->first();
+                        
+                        if ($user) {
+                            // Check if user is verified and approved
+                            if (!$user->is_verified) {
+                                return back()->withErrors(['email' => 'Please verify your email before logging in.']);
+                            } elseif ($user->isAdmin() || $user->isApproved()) {
+                                // Login user
+                                Auth::login($user, $request->boolean('remember'));
+                                $request->session()->regenerate();
+                                
+                                return $this->redirectToDashboard();
+                            } elseif ($user->isPendingApproval()) {
+                                return back()->withErrors(['email' => 'Your account is pending admin approval. Please wait for approval before logging in.']);
+                            } elseif ($user->isRejected()) {
+                                return back()->withErrors(['email' => 'Your account has been rejected. Please contact support.']);
+                            }
                         }
+                    } else {
+                        return back()->withErrors(['email' => 'Please verify your email before logging in.']);
                     }
-                } else {
-                    return back()->withErrors(['email' => 'Please verify your email before logging in.']);
+                }
+            } catch (\Exception $supabaseError) {
+                // Log Supabase error and fall back to local authentication
+                \Log::warning('Supabase auth failed, falling back to local auth', [
+                    'error' => $supabaseError->getMessage(),
+                    'email' => $credentials['email']
+                ]);
+                
+                // Fallback to local authentication
+                $user = User::where('email', $credentials['email'])->first();
+                
+                if ($user && Hash::check($credentials['password'], $user->password)) {
+                    // Check if user is verified and approved
+                    if (!$user->is_verified) {
+                        return back()->withErrors(['email' => 'Please verify your email before logging in.']);
+                    } elseif ($user->isAdmin() || $user->isApproved()) {
+                        // Login user
+                        Auth::login($user, $request->boolean('remember'));
+                        $request->session()->regenerate();
+                        
+                        \Log::info('User logged in via local fallback auth', ['email' => $credentials['email']]);
+                        return $this->redirectToDashboard();
+                    } elseif ($user->isPendingApproval()) {
+                        return back()->withErrors(['email' => 'Your account is pending admin approval. Please wait for approval before logging in.']);
+                    } elseif ($user->isRejected()) {
+                        return back()->withErrors(['email' => 'Your account has been rejected. Please contact support.']);
+                    }
                 }
             }
 
             return back()->withErrors(['email' => 'Invalid credentials.']);
 
         } catch (\Exception $e) {
-            return back()->withErrors(['email' => $e->getMessage()]);
+            \Log::error('Login error', ['error' => $e->getMessage(), 'email' => $credentials['email']]);
+            return back()->withErrors(['email' => 'Login failed. Please try again.']);
         }
     }
 

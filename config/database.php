@@ -96,6 +96,11 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'require'), // Changed to 'require' for Supabase
+            'options' => [
+                PDO::ATTR_TIMEOUT => 5, // Connection timeout in seconds
+                PDO::ATTR_PERSISTENT => false, // Disable persistent connections for Supabase
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            ],
         ],
 
         'sqlsrv' => [
