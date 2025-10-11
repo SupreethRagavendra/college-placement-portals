@@ -50,14 +50,14 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 # Copy package.json files
 COPY package*.json ./
 
-# Install Node dependencies
-RUN npm ci --prefer-offline --no-audit
-
 # Copy application files
 COPY . .
 
 # Complete composer installation
 RUN composer dump-autoload --optimize --no-dev
+
+# Install Node dependencies (after copying files for package-lock.json)
+RUN npm ci --prefer-offline --no-audit || npm install
 
 # Build frontend assets
 RUN npm run build
