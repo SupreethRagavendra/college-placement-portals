@@ -18,7 +18,7 @@ class AdminAssessmentController extends Controller
             abort(403);
         }
 
-        $query = Assessment::select('id', 'name', 'description', 'category', 'difficulty_level', 'total_time', 'total_marks', 'pass_percentage', 'status', 'is_active', 'created_at', 'created_by')
+        $query = Assessment::select('id', 'title', 'description', 'category', 'difficulty_level', 'total_time', 'total_marks', 'pass_percentage', 'status', 'is_active', 'created_at', 'created_by')
             ->with(['creator:id,name'])
             ->withCount(['questions', 'studentResults'])
             ->orderBy('created_at', 'desc');
@@ -35,14 +35,15 @@ class AdminAssessmentController extends Controller
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where(function($q) use ($searchTerm) {
-                $q->where('name', 'ilike', $searchTerm)
-                  ->orWhere('description', 'ilike', $searchTerm);
+                $q->where('title', 'like', $searchTerm)
+                  ->orWhere('description', 'like', $searchTerm);
             });
         }
         
         $assessments = $query->paginate(10)->withQueryString();
 
-        return view('admin.assessments.index', compact('assessments'));
+        return view('admin.assessments.index', compact('assessments'))
+            ->with('errors', session()->get('errors', new \Illuminate\Support\MessageBag()));
     }
 
     public function create(): View
@@ -84,9 +85,6 @@ class AdminAssessmentController extends Controller
         // Map duration to total_time
         $validated['total_time'] = $validated['duration'];
         unset($validated['duration']);
-
-        // Also set name field (same as title for compatibility)
-        $validated['name'] = $validated['title'];
         
         // Set created_by to current user
         $validated['created_by'] = Auth::id();
@@ -114,9 +112,8 @@ class AdminAssessmentController extends Controller
             unset($newData['created_at']);
             unset($newData['updated_at']);
             
-            // Update title and name to indicate it's a copy
+            // Update title to indicate it's a copy
             $newData['title'] = $assessment->title . ' (Copy)';
-            $newData['name'] = $assessment->name . ' (Copy)';
             
             // Set to draft status for the copy
             $newData['status'] = 'draft';
@@ -161,16 +158,38 @@ class AdminAssessmentController extends Controller
         }
     }
 
-    public function edit(Assessment $assessment, Request $request): View
+    public function edit($id, Request $request): View
     {
         if (!Auth::check() || !Auth::user()->isAdmin()) {
             abort(403);
         }
         
+        // Fetch fresh assessment without any relationships to avoid Closure issues
+        $assessment = Assessment::select([
+            'id',
+            'title',
+            'description',
+            'total_time',
+            'total_marks',
+            'pass_percentage',
+            'start_date',
+            'end_date',
+            'status',
+            'category',
+            'difficulty_level',
+            'allow_multiple_attempts',
+            'show_results_immediately',
+            'show_correct_answers',
+            'is_active'
+        ])->findOrFail($id);
+        
+        // Ensure no relationships are loaded
+        $assessment->unsetRelations();
+        
         // If this is a duplicate action, prepare the assessment data for duplication
         if ($request->query('action') === 'duplicate') {
-            // Modify the name to indicate it's a copy
-            $assessment->name = $assessment->name . ' (Copy)';
+            // Modify the title to indicate it's a copy
+            $assessment->title = $assessment->title . ' (Copy)';
             // Reset the ID so it's treated as a new assessment
             $assessment->id = null;
         }
@@ -210,9 +229,6 @@ class AdminAssessmentController extends Controller
             $validated['total_time'] = $validated['duration'];
             unset($validated['duration']); // Remove duration from the array
         }
-        
-        // Also update name field (same as title)
-        $validated['name'] = $validated['title'];
         
         $assessment->update($validated);
 
@@ -397,7 +413,7 @@ class AdminAssessmentController extends Controller
         }
         
         // Ensure question belongs to assessment
-        if (!$assessment->questions()->where('question_id', $question->id)->exists()) {
+        if (!$assessment->questions()->where('questions.id', $question->id)->exists()) {
             abort(404);
         }
         
@@ -474,7 +490,8 @@ class AdminAssessmentController extends Controller
         
         // Load relationships and count questions
         $assessment->loadCount(['questions', 'studentAssessments']);
-        $assessment->load(['questions', 'studentResults.student']);
+        $assessment->load('questions');
+        $assessment->load('studentResults', 'studentResults.student');
         
         // Calculate additional statistics if there are attempts
         if ($assessment->student_assessments_count > 0) {

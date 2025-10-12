@@ -34,7 +34,7 @@ return new class extends Migration
             }
             
             if (!Schema::hasColumn('assessments', 'status')) {
-                $table->enum('status', ['active', 'inactive', 'draft'])->default('draft');
+                $table->string('status', 20)->default('draft');
             }
             
             if (!Schema::hasColumn('assessments', 'category')) {
@@ -42,7 +42,7 @@ return new class extends Migration
             }
             
             if (!Schema::hasColumn('assessments', 'difficulty_level')) {
-                $table->enum('difficulty_level', ['easy', 'medium', 'hard'])->default('medium');
+                $table->string('difficulty_level', 20)->default('medium');
             }
             
             if (!Schema::hasColumn('assessments', 'created_by')) {

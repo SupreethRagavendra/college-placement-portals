@@ -16,8 +16,8 @@ return new class extends Migration
                 $table->id();
                 $table->string('title');
                 $table->text('description')->nullable();
-                $table->enum('category', ['Aptitude', 'Technical']);
-                $table->integer('total_time'); // in minutes
+                $table->string('category', 100)->default('Technical'); // Changed from enum for PostgreSQL
+                $table->integer('total_time')->default(30); // in minutes
                 $table->boolean('is_active')->default(true);
                 $table->timestamps();
                 

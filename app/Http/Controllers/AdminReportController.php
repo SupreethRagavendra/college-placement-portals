@@ -21,15 +21,12 @@ class AdminReportController extends Controller
 
         // Get assessment statistics
         $assessmentStats = Assessment::withCount(['studentResults', 'questions'])
-            ->with(['studentResults' => function($query) {
-                $query->select('assessment_id', 'score', 'total_questions', 'time_taken');
-            }])
             ->get()
             ->map(function($assessment) {
-                $results = $assessment->studentResults;
+                $results = $assessment->studentResults()->select('assessment_id', 'score', 'total_questions', 'time_taken')->get();
                 return [
                     'id' => $assessment->id,
-                    'title' => $assessment->name ?? $assessment->title ?? 'Untitled',
+                    'title' => $assessment->title ?? 'Untitled',
                     'category' => $assessment->category,
                     'total_questions' => $assessment->questions_count,
                     'total_attempts' => $assessment->student_results_count,
@@ -68,7 +65,7 @@ class AdminReportController extends Controller
         }
 
         $query = StudentResult::where('assessment_id', $assessment->id)
-            ->with(['student:id,name,email', 'assessment:id,name,category']);
+            ->with(['student:id,name,email', 'assessment:id,title,category']);
 
         // Apply filters
         if ($request->filled('search')) {
@@ -212,7 +209,7 @@ class AdminReportController extends Controller
 
         // Get all assessment attempts for this student
         $assessmentHistory = StudentResult::where('student_id', $student->id)
-            ->with(['assessment:id,name,category,total_marks,pass_percentage,difficulty_level'])
+            ->with(['assessment:id,title,category,total_marks,pass_percentage,difficulty_level'])
             ->orderBy('submitted_at', 'desc')
             ->get();
 
@@ -261,7 +258,7 @@ class AdminReportController extends Controller
         // Recent performance trend (last 10 assessments)
         $recentTrend = $assessmentHistory->take(10)->reverse()->map(function ($result) {
             return [
-                'assessment_name' => $result->assessment->name ?? 'N/A',
+                'assessment_name' => $result->assessment->title ?? 'N/A',
                 'score' => $result->score_percentage,
                 'date' => $result->submitted_at ? $result->submitted_at->format('M d') : 'N/A',
             ];
@@ -286,7 +283,7 @@ class AdminReportController extends Controller
 
         // Get unique assessments taken
         $uniqueAssessments = Assessment::whereIn('id', $assessmentHistory->pluck('assessment_id')->unique())
-            ->get(['id', 'name', 'category']);
+            ->get(['id', 'title', 'category']);
 
         return view('admin.reports.student-details', compact(
             'student', 
@@ -370,7 +367,7 @@ class AdminReportController extends Controller
 
     private function exportAllResults()
     {
-        $results = StudentResult::with(['student:id,name,email', 'assessment:id,name,category'])
+        $results = StudentResult::with(['student:id,name,email', 'assessment:id,title,category'])
             ->orderBy('submitted_at', 'desc')
             ->get();
 
@@ -396,7 +393,7 @@ class AdminReportController extends Controller
             $csvData[] = [
                 $result->student->name ?? 'N/A',
                 $result->student->email ?? 'N/A',
-                $result->assessment->name ?? 'N/A',
+                $result->assessment->title ?? 'N/A',
                 $result->assessment->category ?? 'N/A',
                 $result->score,
                 $result->total_questions,
@@ -414,16 +411,16 @@ class AdminReportController extends Controller
 
     private function exportAssessmentDetails($assessmentId)
     {
-        $results = StudentResult::with(['student:id,name,email', 'assessment:id,name,category'])
+        $results = StudentResult::with(['student:id,name,email', 'assessment:id,title,category'])
             ->where('assessment_id', $assessmentId)
             ->orderBy('submitted_at', 'desc')
             ->get();
 
         if ($results->isEmpty()) {
             $assessment = Assessment::find($assessmentId);
-            $assessmentName = $assessment ? $assessment->name : 'Unknown Assessment';
+            $assessmentName = $assessment ? $assessment->title : 'Unknown Assessment';
         } else {
-            $assessmentName = $results->first()->assessment->name;
+            $assessmentName = $results->first()->assessment->title;
         }
 
         $csvData = [];
@@ -448,7 +445,7 @@ class AdminReportController extends Controller
             $csvData[] = [
                 $result->student->name ?? 'N/A',
                 $result->student->email ?? 'N/A',
-                $result->assessment->name ?? 'N/A',
+                $result->assessment->title ?? 'N/A',
                 $result->assessment->category ?? 'N/A',
                 $result->score,
                 $result->total_questions,
@@ -629,7 +626,7 @@ class AdminReportController extends Controller
         $data = [
             'student_name' => $result->student->name,
             'student_email' => $result->student->email,
-            'assessment_name' => $result->assessment->name ?? $result->assessment->title,
+            'assessment_name' => $result->assessment->title,
             'category' => $result->assessment->category,
             'submitted_at' => $result->submitted_at ? $result->submitted_at->format('M d, Y H:i:s') : 'N/A',
             'time_taken' => round($result->time_taken / 60, 1) . ' minutes',

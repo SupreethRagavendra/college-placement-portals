@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('chatbot_messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('conversation_id')->constrained('chatbot_conversations')->onDelete('cascade');
-            $table->enum('sender', ['student', 'bot']);
+            $table->string('sender', 20)->default('student'); // Changed from enum for PostgreSQL
             $table->text('message');
             $table->text('formatted_message')->nullable(); // Rich formatted version
             $table->json('context_used')->nullable(); // What context was used for this response

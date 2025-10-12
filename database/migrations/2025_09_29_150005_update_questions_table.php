@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('questions', function (Blueprint $table) {
             // Add missing columns if they don't exist
             if (!Schema::hasColumn('questions', 'question_type')) {
-                $table->enum('question_type', ['mcq', 'true_false', 'short_answer'])->default('mcq');
+                $table->string('question_type', 20)->default('mcq'); // Changed from enum for PostgreSQL
             }
             
             if (!Schema::hasColumn('questions', 'marks')) {
@@ -22,7 +22,7 @@ return new class extends Migration
             }
             
             if (!Schema::hasColumn('questions', 'difficulty_level')) {
-                $table->enum('difficulty_level', ['easy', 'medium', 'hard'])->default('medium');
+                $table->string('difficulty_level', 20)->default('medium'); // Changed from enum for PostgreSQL
             }
             
             if (!Schema::hasColumn('questions', 'order')) {

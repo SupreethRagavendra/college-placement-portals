@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('topic')->nullable(); // Main topic of conversation
             $table->json('context')->nullable(); // Conversation context/memory
             $table->json('metadata')->nullable(); // Additional metadata
-            $table->enum('status', ['active', 'archived', 'ended'])->default('active');
+            $table->string('status', 20)->default('active'); // Changed from enum for PostgreSQL
             $table->timestamp('last_activity')->nullable();
             $table->timestamps();
             

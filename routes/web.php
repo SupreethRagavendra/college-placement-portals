@@ -147,6 +147,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 
     // Note: Assessment routes are now defined in routes/assessment.php
 
+    // Clear caches (for debugging)
+    Route::post('/clear-caches', [AdminController::class, 'clearCaches'])->name('admin.clear-caches');
+    
     // Reports
     Route::get('/reports', [AdminReportController::class, 'index'])->name('admin.reports.index');
     Route::get('/reports/assessments/{assessment}', [AdminReportController::class, 'assessmentDetails'])

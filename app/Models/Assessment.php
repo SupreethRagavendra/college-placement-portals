@@ -14,10 +14,9 @@ class Assessment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'name',
         'title',
         'description',
-        'duration',
+        'total_time',  // Main field for duration in minutes
         'total_marks',
         'pass_percentage',
         'start_date',
@@ -29,8 +28,6 @@ class Assessment extends Model
         'allow_multiple_attempts',
         'show_results_immediately',
         'show_correct_answers',
-        'time_limit',
-        'total_time',
         'is_active'
     ];
 
@@ -119,53 +116,8 @@ class Assessment extends Model
     }
 
     /**
-     * Get the average score for this assessment
-     */
-    public function getAverageScoreAttribute()
-    {
-        try {
-            return $this->studentAssessments()->avg('obtained_marks') ?? 0;
-        } catch (\Exception $e) {
-            return 0;
-        }
-    }
-
-    /**
-     * Get the pass rate for this assessment
-     */
-    public function getPassRateAttribute()
-    {
-        try {
-            $totalAttempts = $this->studentAssessments()->count();
-            if ($totalAttempts === 0) {
-                return 0;
-            }
-            
-            $passedAttempts = $this->studentAssessments()->where('pass_status', 'pass')->count();
-            return round(($passedAttempts / $totalAttempts) * 100, 2);
-        } catch (\Exception $e) {
-            return 0;
-        }
-    }
-    
-    /**
-     * Get the title attribute (alias for name)
-     */
-    public function getTitleAttribute()
-    {
-        return $this->attributes['name'] ?? '';
-    }
-
-    /**
-     * Set the title attribute (alias for name)
-     */
-    public function setTitleAttribute($value)
-    {
-        $this->attributes['name'] = $value;
-    }
-
-    /**
      * Get the duration attribute (alias for total_time)
+     * This allows backward compatibility with forms using 'duration'
      */
     public function getDurationAttribute()
     {
@@ -173,7 +125,8 @@ class Assessment extends Model
     }
 
     /**
-     * Set the duration attribute (alias for total_time)
+     * Set the duration attribute (maps to total_time)
+     * This allows backward compatibility with forms using 'duration'
      */
     public function setDurationAttribute($value)
     {

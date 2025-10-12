@@ -36,8 +36,8 @@ class AdminController extends Controller
             return redirect()->route('login')->withErrors(['error' => 'Unauthorized access.']);
         }
 
-        // Cache dashboard statistics for 5 minutes
-        $stats = Cache::remember('admin_dashboard_stats', 300, function() {
+        // Cache dashboard statistics for 1 minute (reduced from 5 minutes for faster updates)
+        $stats = Cache::remember('admin_dashboard_stats', 60, function() {
             return [
                 'total_students' => User::where('role', 'student')->count(),
                 'approved_students' => User::approved()->count(),
@@ -50,8 +50,8 @@ class AdminController extends Controller
             ];
         });
 
-        // Cache average score calculation for 5 minutes
-        $stats['average_score'] = Cache::remember('admin_dashboard_avg_score', 300, function() {
+        // Cache average score calculation for 1 minute (reduced from 5 minutes for faster updates)
+        $stats['average_score'] = Cache::remember('admin_dashboard_avg_score', 60, function() {
             $averageScore = StudentResult::selectRaw('AVG((score / total_questions) * 100) as avg_percentage')
                 ->value('avg_percentage');
             return round($averageScore ?? 0, 2);
@@ -67,16 +67,14 @@ class AdminController extends Controller
 
         // Cache assessment analytics for 5 minutes
         $assessmentAnalytics = Cache::remember('admin_assessment_analytics', 300, function() {
-            return Assessment::with(['studentResults' => function($query) {
-                $query->select('assessment_id', 'score', 'total_questions');
-            }])
+            return Assessment::select('id', 'title', 'category')
             ->withCount('studentResults')
             ->get()
             ->map(function($assessment) {
-                $results = $assessment->studentResults;
+                $results = $assessment->studentResults()->select('assessment_id', 'score', 'total_questions')->get();
                 return [
                     'id' => $assessment->id,
-                    'title' => $assessment->name,
+                    'title' => $assessment->title,
                     'category' => $assessment->category,
                     'attempts' => $assessment->student_results_count,
                     'avg_score' => round($results->avg('score') ?? 0, 2),
@@ -221,6 +219,7 @@ class AdminController extends Controller
             
             // Clear cache
             Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_dashboard_avg_score');
             Cache::forget('admin_pending_students');
             Cache::forget('admin_recent_approvals');
 
@@ -290,6 +289,7 @@ class AdminController extends Controller
             
             // Clear cache
             Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_dashboard_avg_score');
             Cache::forget('admin_pending_students');
 
             // Send rejection email asynchronously (non-blocking)
@@ -351,6 +351,12 @@ class AdminController extends Controller
             }
 
             DB::commit();
+            
+            // Clear cache after bulk approval
+            Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_dashboard_avg_score');
+            Cache::forget('admin_pending_students');
+            Cache::forget('admin_recent_approvals');
 
             return back()->with('status', "Successfully approved {$approvedCount} students.");
 
@@ -395,6 +401,11 @@ class AdminController extends Controller
             }
 
             DB::commit();
+            
+            // Clear cache after bulk rejection
+            Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_dashboard_avg_score');
+            Cache::forget('admin_pending_students');
 
             return back()->with('status', "Successfully rejected {$rejectedCount} students.");
 
@@ -462,6 +473,11 @@ class AdminController extends Controller
             ]);
 
             DB::commit();
+            
+            // Clear cache after restoring student
+            Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_dashboard_avg_score');
+            Cache::forget('admin_pending_students');
 
             return back()->with('status', "Student {$student->name} has been restored to pending status.");
 
@@ -553,6 +569,35 @@ class AdminController extends Controller
             
             return back()->withErrors(['error' => 'Failed to revoke access. Please try again.']);
         }
+    }
+
+    /**
+     * Clear all admin dashboard caches (for debugging)
+     */
+    public function clearCaches(): RedirectResponse
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return redirect()->route('login')->withErrors(['error' => 'Unauthorized access.']);
+        }
+
+        $this->clearAdminCaches();
+        
+        return back()->with('status', 'All admin dashboard caches have been cleared.');
+    }
+
+    /**
+     * Clear all admin dashboard caches
+     */
+    private function clearAdminCaches()
+    {
+        Cache::forget('admin_dashboard_stats');
+        Cache::forget('admin_dashboard_avg_score');
+        Cache::forget('admin_pending_students');
+        Cache::forget('admin_recent_approvals');
+        Cache::forget('admin_recent_assessments');
+        Cache::forget('admin_assessment_analytics');
+        Cache::forget('admin_top_students');
+        Cache::forget('admin_category_performance');
     }
 
     /**

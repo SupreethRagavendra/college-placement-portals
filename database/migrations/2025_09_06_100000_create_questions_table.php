@@ -17,8 +17,8 @@ return new class extends Migration
                 $table->text('question_text');
                 $table->json('options'); // Store 4 options as JSON array
                 $table->integer('correct_option'); // 0-3 index for correct answer
-                $table->enum('category', ['Aptitude', 'Technical']);
-                $table->enum('difficulty', ['Easy', 'Medium', 'Hard'])->default('Medium');
+                $table->string('category', 100)->default('Aptitude'); // Changed from enum for PostgreSQL
+                $table->string('difficulty', 20)->default('Medium'); // Changed from enum for PostgreSQL
                 $table->integer('time_per_question')->default(60); // seconds
                 $table->boolean('is_active')->default(true);
                 $table->timestamps();

@@ -7,7 +7,7 @@ use App\Http\Controllers\Admin\ResultController as AdminResultController;
 use App\Http\Controllers\Student\ResultController as StudentResultController;
 
 // Admin Routes
-Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
+Route::prefix('admin')->middleware(['web', 'auth', 'role:admin'])->group(function () {
     // Assessment routes
     Route::resource('assessments', AdminAssessmentController::class)->names([
         'index' => 'admin.assessments.index',
@@ -44,7 +44,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
 });
 
 // Student Routes
-Route::prefix('student')->middleware(['auth', 'role:student'])->group(function () {
+Route::prefix('student')->middleware(['web', 'auth', 'role:student'])->group(function () {
     // Assessment routes
     Route::get('assessments', [StudentAssessmentController::class, 'index'])->name('student.assessments.index');
     Route::get('assessments/{assessment}', [StudentAssessmentController::class, 'show'])->name('student.assessments.show');

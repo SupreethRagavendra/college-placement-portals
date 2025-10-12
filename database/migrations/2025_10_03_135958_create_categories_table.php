@@ -23,7 +23,7 @@ return new class extends Migration
             });
         }
 
-        // Seed initial categories
+        // Seed initial categories if empty
         if (DB::table('categories')->count() === 0) {
             DB::table('categories')->insert([
                 ['name' => 'Aptitude', 'description' => 'Logical reasoning and mathematical skills', 'is_active' => true],
@@ -31,37 +31,46 @@ return new class extends Migration
             ]);
         }
 
-        // Update questions table to use category_id
-        Schema::table('questions', function (Blueprint $table) {
-            // Drop the existing category column if it exists
-            if (Schema::hasColumn('questions', 'category')) {
-                $table->dropColumn('category');
-            }
-
-            // Add category_id column if it doesn't exist
-            if (!Schema::hasColumn('questions', 'category_id')) {
-                // Get the default Aptitude category ID
-                $aptitudeCategoryId = DB::table('categories')->where('name', 'Aptitude')->value('id');
+        // Add category_id column to questions table if it doesn't exist
+        if (!Schema::hasColumn('questions', 'category_id')) {
+            Schema::table('questions', function (Blueprint $table) {
+                $table->unsignedBigInteger('category_id')->nullable();
                 
-                $table->unsignedBigInteger('category_id')
-                    ->default($aptitudeCategoryId)
-                    ->nullable(false)
-                    ->change();
-                
+                // Add foreign key constraint
                 $table->foreign('category_id')
                     ->references('id')
                     ->on('categories')
                     ->onDelete('restrict');
+            });
+            
+            // Set category_id for existing questions based on category column
+            $categories = DB::table('categories')->pluck('id', 'name')->toArray();
+            
+            // Update questions with Aptitude category
+            if (isset($categories['Aptitude'])) {
+                DB::table('questions')
+                    ->where('category', 'Aptitude')
+                    ->update(['category_id' => $categories['Aptitude']]);
             }
-        });
-
-        // Ensure all existing questions have a category_id
-        $categories = DB::table('categories')->pluck('id', 'name');
-        DB::table('questions')
-            ->whereNull('category_id')
-            ->update([
-                'category_id' => $categories['Aptitude']
-            ]);
+            
+            // Update questions with Technical category
+            if (isset($categories['Technical'])) {
+                DB::table('questions')
+                    ->where('category', 'Technical')
+                    ->update(['category_id' => $categories['Technical']]);
+            }
+            
+            // Set default category_id for any remaining questions
+            $defaultCategoryId = $categories['Aptitude'] ?? DB::table('categories')->first()->id;
+            DB::table('questions')
+                ->whereNull('category_id')
+                ->update(['category_id' => $defaultCategoryId]);
+                
+            // Make category_id not nullable
+            Schema::table('questions', function (Blueprint $table) {
+                $table->unsignedBigInteger('category_id')->nullable(false)->change();
+            });
+        }
     }
 
     /**
@@ -72,7 +81,6 @@ return new class extends Migration
         Schema::table('questions', function (Blueprint $table) {
             $table->dropForeign(['category_id']);
             $table->dropColumn('category_id');
-            $table->enum('category', ['Aptitude', 'Technical'])->nullable();
         });
 
         Schema::dropIfExists('categories');

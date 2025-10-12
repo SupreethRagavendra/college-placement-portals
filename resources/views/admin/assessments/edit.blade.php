@@ -75,7 +75,8 @@
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label for="difficulty_level" class="form-label">Difficulty Level *</label>
-{{ ... }}
+                        <select class="form-control" id="difficulty_level" name="difficulty_level" required>
+                            <option value="">Select Difficulty</option>
                             <option value="easy" {{ old('difficulty_level', $assessment->difficulty_level) == 'easy' ? 'selected' : '' }}>Easy</option>
                             <option value="medium" {{ old('difficulty_level', $assessment->difficulty_level) == 'medium' ? 'selected' : '' }}>Medium</option>
                             <option value="hard" {{ old('difficulty_level', $assessment->difficulty_level) == 'hard' ? 'selected' : '' }}>Hard</option>

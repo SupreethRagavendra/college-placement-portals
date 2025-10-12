@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class AdminStudentController extends Controller
@@ -68,6 +69,12 @@ class AdminStudentController extends Controller
             ]);
             DB::commit();
             
+            // Clear cache after approval
+            Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_dashboard_avg_score');
+            Cache::forget('admin_pending_students');
+            Cache::forget('admin_recent_approvals');
+            
             // Send approval email asynchronously (non-blocking)
             $this->sendStatusEmailAsync($student, 'approved');
             
@@ -115,6 +122,11 @@ class AdminStudentController extends Controller
                 'rejection_reason' => $request->rejection_reason
             ]);
             DB::commit();
+            
+            // Clear cache after rejection
+            Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_dashboard_avg_score');
+            Cache::forget('admin_pending_students');
             
             // Send rejection email asynchronously (non-blocking)
             $this->sendStatusEmailAsync($student, 'rejected', $request->rejection_reason);

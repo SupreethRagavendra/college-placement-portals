@@ -12,10 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('assessments', function (Blueprint $table) {
-            // Add total_time column if it doesn't exist
-            if (!Schema::hasColumn('assessments', 'total_time')) {
-                $table->integer('total_time')->default(30)->after('category');
-            }
+            // total_time already exists from initial migration, skip it
             
             // Add name column if it doesn't exist (as an alias for title)
             if (!Schema::hasColumn('assessments', 'name')) {

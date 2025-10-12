@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('assessment_id')->nullable()->constrained('assessments')->onDelete('set null');
             $table->string('category'); // Aptitude, Technical, etc
             $table->string('topic')->nullable(); // Specific topic
-            $table->enum('difficulty_level', ['Easy', 'Medium', 'Hard']);
+            $table->string('difficulty_level', 20)->default('Medium'); // Changed from enum for PostgreSQL
             
             // Performance Metrics
             $table->integer('total_questions')->default(0);

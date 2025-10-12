@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('questions', function (Blueprint $table) {
             // Add category column if it doesn't exist
             if (!Schema::hasColumn('questions', 'category')) {
-                $table->enum('category', ['Aptitude', 'Technical'])->default('Aptitude');
+                $table->string('category', 100)->default('Aptitude'); // Changed from enum for PostgreSQL
             }
         });
     }
