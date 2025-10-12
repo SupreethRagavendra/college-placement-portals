@@ -3,15 +3,12 @@ set -e
 
 echo "🚀 Starting Laravel application..."
 
-# Force use of Supabase pooler connection for better reliability
-export DB_HOST="aws-0-ap-south-1.pooler.supabase.com"
-export DB_PORT="6543"
-export DB_USERNAME="postgres.wkqbukidxmzbgwauncrl"
-export DB_SSLMODE="require"
-echo "📝 Using Supabase pooler connection"
+# Use environment variables for database connection
+echo "📝 Using database connection from environment"
 echo "📍 DB_HOST: $DB_HOST"
 echo "📍 DB_PORT: $DB_PORT"
 echo "📍 DB_USERNAME: $DB_USERNAME"
+echo "📍 DB_SSLMODE: $DB_SSLMODE"
 
 # Test database connection with better error handling
 echo "⏳ Testing database connection..."

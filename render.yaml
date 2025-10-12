@@ -45,11 +45,11 @@ services:
       - key: DB_SSLMODE
         value: require
       
-      # Cache & Session - Using cookie driver for better reliability in Docker
+      # Cache & Session - Using database driver for consistency with local
       - key: CACHE_DRIVER
         value: file
       - key: SESSION_DRIVER
-        value: cookie
+        value: database
       - key: SESSION_LIFETIME
         value: 120
       - key: SESSION_ENCRYPT

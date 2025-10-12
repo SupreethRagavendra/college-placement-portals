@@ -65,11 +65,11 @@ php artisan migrate --force --no-interaction
 echo "👤 Seeding admin user..."
 php artisan db:seed --class=AdminSeeder --force --no-interaction || echo "⚠️  Seeder already ran or failed, continuing..."
 
-# 8. Cache configuration for production
-echo "⚡ Caching configuration..."
-php artisan config:cache
+# 8. Cache routes and views only (NOT config to allow runtime env vars)
+echo "⚡ Caching routes and views..."
 php artisan route:cache
 php artisan view:cache
+echo "⚠️  Skipping config:cache to allow runtime environment variables"
 
 # 9. Create symbolic link for storage (if needed)
 echo "🔗 Creating storage link..."
