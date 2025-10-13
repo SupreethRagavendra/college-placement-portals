@@ -25,7 +25,10 @@
             <div class="col-md-3 col-lg-2 px-0">
                 <div class="sidebar">
                     <div class="p-3">
-                        <h4 class="text-white mb-4"><i class="fas fa-graduation-cap me-2"></i>Admin Panel</h4>
+                        <div class="d-flex align-items-center mb-4">
+                            <img src="{{ asset('css/logo1-removebg-preview.png') }}" alt="College Logo" style="height: 50px; width: 50px; object-fit: contain; background: white; border-radius: 50%; padding: 5px; margin-right: 12px;">
+                            <h5 class="text-white mb-0">Admin Panel</h5>
+                        </div>
                         <nav class="nav flex-column">
                             <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
                             <a class="nav-link {{ request()->is('admin/students/pending') ? 'active' : '' }}" href="{{ route('admin.pending-students') }}"><i class="fas fa-clock me-2"></i>Pending Students</a>

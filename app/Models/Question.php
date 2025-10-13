@@ -125,19 +125,22 @@ class Question extends Model
     }
 
     /**
-     * Get the question_text attribute (alias for question)
+     * Get the question attribute (alias for question_text)
+     * Maps 'question' to database column 'question_text'
      */
-    public function getQuestionTextAttribute()
+    public function getQuestionAttribute()
     {
-        return $this->attributes['question'] ?? '';
+        return $this->attributes['question_text'] ?? '';
     }
 
     /**
-     * Set the question_text attribute (alias for question)
+     * Set the question attribute (fills both question and question_text columns)
      */
-    public function setQuestionTextAttribute($value)
+    public function setQuestionAttribute($value)
     {
+        // Set both columns to ensure compatibility
         $this->attributes['question'] = $value;
+        $this->attributes['question_text'] = $value;
     }
 
     /**

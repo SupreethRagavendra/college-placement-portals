@@ -39,10 +39,10 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);">
         <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="fas fa-graduation-cap me-2"></i>
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="{{ asset('css/logo1-removebg-preview.png') }}" alt="College Logo" style="height: 40px; margin-right: 10px;">
                 College Placement Portal
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -51,13 +51,13 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#home">Home</a>
+                        <a class="nav-link" href="#home">Home</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#about">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('register') }}">Student Signup</a>
+                        <a class="nav-link" href="{{ route('login') }}">Student Signup</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('login') }}">Login</a>
@@ -76,120 +76,97 @@
                     <p class="lead mb-4">Empowering students with the skills and knowledge needed to excel in their career journey. Join thousands of successful graduates who found their dream jobs through our comprehensive training program.</p>
                     <div class="d-flex gap-3">
                         <a href="{{ route('register') }}" class="btn btn-light btn-custom">
-                            <i class="fas fa-user-plus me-2"></i>Register as Student
+                            <i class="fas fa-user-plus me-2"></i>REGISTER AS STUDENT
                         </a>
                         <a href="{{ route('login') }}" class="btn btn-outline-light btn-custom">
-                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                            <i class="fas fa-sign-in-alt me-2"></i>LOGIN
                         </a>
                     </div>
                 </div>
-                <div class="col-lg-6 text-center">
-                    <i class="fas fa-graduation-cap" style="font-size: 15rem; opacity: 0.3;"></i>
+                <div class="col-lg-6">
+                    <div class="text-center">
+                        <i class="fas fa-graduation-cap" style="font-size: 15rem; opacity: 0.3;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Features Section -->
-    <section class="section-padding bg-light">
+    <section id="about" class="section-padding bg-light">
         <div class="container">
-            <div class="row text-center mb-5">
-                <div class="col-lg-8 mx-auto">
-                    <h2 class="display-5 fw-bold mb-3">Why Choose Our Portal?</h2>
-                    <p class="lead">Comprehensive training and placement support designed for student success</p>
-                </div>
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold">Why Choose Us?</h2>
+                <p class="lead text-muted">Comprehensive training and placement assistance</p>
             </div>
             <div class="row g-4">
                 <div class="col-md-4">
-                    <div class="card feature-card h-100 text-center p-4">
-                        <div class="card-body">
-                            <i class="fas fa-laptop-code fa-3x text-primary mb-3"></i>
-                            <h5 class="card-title">Technical Training</h5>
-                            <p class="card-text">Comprehensive technical skills training in programming, databases, and modern technologies.</p>
+                    <div class="card feature-card h-100 p-4">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-laptop-code fa-3x text-primary"></i>
                         </div>
+                        <h4 class="text-center mb-3">Technical Training</h4>
+                        <p class="text-muted text-center">Comprehensive technical skill development programs tailored to industry requirements.</p>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card feature-card h-100 text-center p-4">
-                        <div class="card-body">
-                            <i class="fas fa-users fa-3x text-success mb-3"></i>
-                            <h5 class="card-title">Soft Skills</h5>
-                            <p class="card-text">Develop communication, leadership, and teamwork skills essential for professional success.</p>
+                    <div class="card feature-card h-100 p-4">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-users fa-3x text-success"></i>
                         </div>
+                        <h4 class="text-center mb-3">Soft Skills</h4>
+                        <p class="text-muted text-center">Communication, teamwork, and professional development workshops.</p>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card feature-card h-100 text-center p-4">
-                        <div class="card-body">
-                            <i class="fas fa-briefcase fa-3x text-warning mb-3"></i>
-                            <h5 class="card-title">Job Placement</h5>
-                            <p class="card-text">Direct connections with top companies and guaranteed placement assistance for qualified students.</p>
+                    <div class="card feature-card h-100 p-4">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-briefcase fa-3x text-warning"></i>
                         </div>
+                        <h4 class="text-center mb-3">Placement Support</h4>
+                        <p class="text-muted text-center">Dedicated placement assistance and career guidance from industry experts.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- About Section -->
-    <section id="about" class="section-padding">
+    <!-- Stats Section -->
+    <section class="section-padding">
         <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6">
-                    <h2 class="display-5 fw-bold mb-4">About Our Platform</h2>
-                    <p class="lead mb-4">Our College Placement Training Portal is designed to bridge the gap between academic learning and industry requirements. We provide students with practical skills, real-world experience, and direct access to employment opportunities.</p>
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <span>Industry-Ready Skills</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <span>Expert Mentorship</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <span>Placement Support</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <span>Career Guidance</span>
-                            </div>
-                        </div>
-                    </div>
+            <div class="row text-center">
+                <div class="col-md-4 mb-4">
+                    <h2 class="display-4 fw-bold text-primary">500+</h2>
+                    <p class="lead">Students Trained</p>
                 </div>
-                <div class="col-lg-6 text-center">
-                    <i class="fas fa-chart-line" style="font-size: 12rem; color: #667eea; opacity: 0.3;"></i>
+                <div class="col-md-4 mb-4">
+                    <h2 class="display-4 fw-bold text-success">100+</h2>
+                    <p class="lead">Company Partnerships</p>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h2 class="display-4 fw-bold text-warning">95%</h2>
+                    <p class="lead">Placement Rate</p>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="section-padding bg-primary text-white">
-        <div class="container text-center">
-            <h2 class="display-5 fw-bold mb-4">Ready to Start Your Career Journey?</h2>
-            <p class="lead mb-4">Join thousands of students who have successfully launched their careers through our platform.</p>
-            <a href="{{ route('register') }}" class="btn btn-light btn-custom">
-                <i class="fas fa-rocket me-2"></i>Join as Student
-            </a>
         </div>
     </section>
 
     <!-- Footer -->
     <footer class="bg-dark text-white py-4">
-        <div class="container text-center">
-            <p class="mb-0">&copy; 2024 College Placement Training Portal. All rights reserved.</p>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-graduation-cap me-2"></i>College Placement Portal</h5>
+                    <p class="text-muted">Empowering students for successful careers</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">&copy; {{ date('Y') }} College Placement Portal. All rights reserved.</p>
+                </div>
+            </div>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
