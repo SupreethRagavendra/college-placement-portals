@@ -384,6 +384,7 @@ class AdminAssessmentController extends Controller
                 'marks' => $validated['marks'] ?? 1,
                 'difficulty_level' => $validated['difficulty_level'] ?? 'medium',
                 'category_id' => $category->id,
+                'category' => $assessment->category, // Add category field
                 'time_per_question' => 60,
                 'is_active' => true,
                 'order' => 0,
