@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    'default' => env('CACHE_STORE', 'file'), // Using file cache for better performance on slow internet
 
     /*
     |--------------------------------------------------------------------------

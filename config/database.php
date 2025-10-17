@@ -83,6 +83,30 @@ return [
             ]) : [],
         ],
 
+        'pgsql_cache' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_DATABASE', 'laravel'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'connect_timeout' => env('DB_CONNECT_TIMEOUT', 60), // Connection timeout in seconds
+            'options' => extension_loaded('pdo_pgsql') ? [
+                PDO::ATTR_TIMEOUT => env('DB_TIMEOUT', 90), // Longer timeout for cache operations
+                PDO::ATTR_PERSISTENT => false,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_STRINGIFY_FETCHES => false,
+            ] : [],
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
@@ -95,13 +119,15 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'require'),
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'connect_timeout' => env('DB_CONNECT_TIMEOUT', 60), // Connection timeout in seconds
             'options' => extension_loaded('pdo_pgsql') ? [
-                PDO::ATTR_TIMEOUT => 15, // Increased to 15 seconds for Render
+                PDO::ATTR_TIMEOUT => env('DB_TIMEOUT', 90), // Query timeout: 90 seconds for slow connections
                 PDO::ATTR_PERSISTENT => false,
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_EMULATE_PREPARES => false,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_STRINGIFY_FETCHES => false,
             ] : [],
         ],
 

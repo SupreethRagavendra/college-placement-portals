@@ -135,7 +135,7 @@
             </div>
             
             <div class="message-box">
-                <p>Thank you for your interest in joining {{ $collegeName }}. After careful review, we regret to inform you that your account registration has been <strong>not approved</strong> at this time.</p>
+                <p>Thank you for your interest in joining {{ $collegeName }} Training Portal. After careful review, we regret to inform you that your account registration has been <strong>not approved</strong> at this time.</p>
                 <div class="status-badge">Status: Not Approved</div>
             </div>
             
@@ -152,29 +152,29 @@
                     <li><strong>Review Feedback:</strong> Consider the reason provided above (if applicable)</li>
                     <li><strong>Address Issues:</strong> Work on any areas mentioned in the feedback</li>
                     <li><strong>Reapply:</strong> You may submit a new application after addressing concerns</li>
-                    <li><strong>Seek Guidance:</strong> Contact our admissions team for clarification</li>
+                    <li><strong>Seek Guidance:</strong> Contact our support team for clarification</li>
                     <li><strong>Prepare Better:</strong> Use this as an opportunity to strengthen your application</li>
                 </ul>
             </div>
             
-            <p>We encourage you to reapply once you've addressed the mentioned concerns. Our admissions team is always here to help guide you through the process.</p>
+            <p>We encourage you to reapply once you've addressed the mentioned concerns. Our support team is always here to help guide you through the process.</p>
             
             <div class="contact-info">
                 <h4>📞 Need Clarification?</h4>
                 <p>For questions about your application or guidance on reapplying:</p>
-                <p><strong>Email:</strong> supreethvennila@gmail.com<br>
+                <p><strong>Support Email:</strong> {{ config('mail.from.address') }}<br>
                 <strong>Support Hours:</strong> Monday - Friday, 9:00 AM - 6:00 PM</p>
             </div>
             
             <p style="margin-top: 30px;">
                 Best regards,<br>
-                <strong>{{ $collegeName }} Admissions Team</strong>
+                <strong>{{ $collegeName }} Support Team</strong>
             </p>
         </div>
         
         <div class="footer">
             <p>This is an automated message. Please do not reply directly to this email.</p>
-            <p>For support, contact us at supreethvennila@gmail.com</p>
+            <p>For support, contact us at {{ config('mail.from.address') }}</p>
             <p>© {{ date('Y') }} {{ $collegeName }}. All rights reserved.</p>
         </div>
     </div>

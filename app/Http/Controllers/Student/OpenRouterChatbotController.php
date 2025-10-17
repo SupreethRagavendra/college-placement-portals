@@ -30,6 +30,10 @@ class OpenRouterChatbotController extends Controller
      */
     public function chat(Request $request): JsonResponse
     {
+        $startTime = microtime(true);
+        $failed = false;
+        $errorMessage = null;
+        
         try {
             $request->validate([
                 'message' => 'required|string|max:500'
@@ -45,8 +49,21 @@ class OpenRouterChatbotController extends Controller
                 'session_id' => $sessionId
             ]);
             
-            // ALWAYS gather fresh student context for real-time data
-            // No caching - each student needs their current data
+            // Get or create conversation with message history
+            $conversation = \DB::table('chatbot_conversations')
+                ->where('student_id', $studentId)
+                ->where('session_id', $sessionId)
+                ->first();
+            
+            $conversationHistory = [];
+            if ($conversation && $conversation->messages) {
+                $conversationHistory = json_decode($conversation->messages, true) ?? [];
+                Log::info('Retrieved conversation history', [
+                    'message_count' => count($conversationHistory)
+                ]);
+            }
+            
+            // Gather student context (with caching for performance)
             $studentContext = $this->gatherStudentContext($studentId);
             
             Log::info('Fresh context gathered', [
@@ -55,16 +72,17 @@ class OpenRouterChatbotController extends Controller
                 'in_progress' => count($studentContext['in_progress_assessments'])
             ]);
             
-            // Call OpenRouter RAG service with context
+            // Call OpenRouter RAG service with context and conversation history
             try {
                 $student = Auth::user();
                 $response = Http::timeout($this->timeout)->post($this->ragServiceUrl . '/chat', [
                     'student_id' => $studentId,
-                    'message' => $query,  // Changed from 'query' to 'message' to match RAG API
+                    'message' => $query,
                     'student_name' => $student->name,
                     'student_email' => $student->email,
                     'session_id' => $sessionId,
-                    'student_context' => $studentContext
+                    'student_context' => $studentContext,
+                    'conversation_history' => $conversationHistory  // Add conversation history
                 ]);
                 
             if ($response->successful()) {
@@ -73,9 +91,52 @@ class OpenRouterChatbotController extends Controller
                 // Log the full response for debugging
                 Log::info('RAG Response received', [
                     'query_type' => $data['query_type'] ?? 'unknown',
+                    'model_used' => $data['model_used'] ?? 'NOT SET',
                     'has_special_action' => isset($data['special_action']),
-                    'special_action' => $data['special_action'] ?? null
+                    'special_action' => $data['special_action'] ?? null,
+                    'message_preview' => substr($data['message'] ?? '', 0, 100)
                 ]);
+                
+                // Update conversation history with new messages
+                $conversationHistory[] = ['role' => 'user', 'content' => $query];
+                $conversationHistory[] = ['role' => 'assistant', 'content' => $data['message']];
+                
+                // Keep only last 10 messages (5 conversation turns)
+                $conversationHistory = array_slice($conversationHistory, -10);
+                
+                // Save conversation to database
+                \DB::table('chatbot_conversations')->updateOrInsert(
+                    [
+                        'student_id' => $studentId,
+                        'session_id' => $sessionId
+                    ],
+                    [
+                        'messages' => json_encode($conversationHistory),
+                        'last_message_at' => now(),
+                        'last_activity' => now(),
+                        'updated_at' => now(),
+                        'created_at' => $conversation ? $conversation->created_at : now()
+                    ]
+                );
+                
+                Log::info('Conversation history saved', [
+                    'total_messages' => count($conversationHistory)
+                ]);
+                
+                // Log analytics
+                $responseTime = (microtime(true) - $startTime) * 1000; // milliseconds
+                $this->logAnalytics(
+                    $studentId,
+                    $query,
+                    $data['query_type'] ?? 'unknown',
+                    $data['message'] ?? '',
+                    $data['model_used'] ?? null,
+                    $responseTime,
+                    $data['tokens_used'] ?? null,
+                    $data['from_cache'] ?? false,
+                    false,
+                    null
+                );
                 
                 // Check for special actions (like name update)
                 if (isset($data['special_action']) && $data['special_action']['type'] === 'update_name') {
@@ -144,12 +205,30 @@ class OpenRouterChatbotController extends Controller
             }
             
         } catch (\Exception $e) {
+            $failed = true;
+            $errorMessage = $e->getMessage();
+            
             Log::error('OpenRouter Chatbot error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
             
+            // Log failed analytics
+            $responseTime = (microtime(true) - $startTime) * 1000;
+            $this->logAnalytics(
+                $studentId ?? 0,
+                $query ?? '',
+                'error',
+                '',
+                null,
+                $responseTime,
+                null,
+                false,
+                true,
+                $errorMessage
+            );
+            
             // Instead of returning an error, use the fallback response
-            return $this->fallbackResponse($query, $studentId);
+            return $this->fallbackResponse($query ?? '', $studentId ?? 0);
         }
     }
     
@@ -241,9 +320,20 @@ class OpenRouterChatbotController extends Controller
     }
     
     /**
-     * Gather comprehensive student context
+     * Gather comprehensive student context with caching for performance
      */
     private function gatherStudentContext(int $studentId): array
+    {
+        // Cache student context for 5 minutes to reduce database load
+        return Cache::remember("student_context_{$studentId}", 300, function() use ($studentId) {
+            return $this->fetchStudentContext($studentId);
+        });
+    }
+    
+    /**
+     * Fetch fresh student context from database
+     */
+    private function fetchStudentContext(int $studentId): array
     {
         try {
             // Get available assessments (not taken by this student)
@@ -456,8 +546,8 @@ class OpenRouterChatbotController extends Controller
                     ],
                     'timestamp' => now()->toISOString(),
                     'query_type' => 'off_topic',
-                    'model_used' => '🟡 Mode 2: LIMITED MODE',
-                    'rag_status' => 'refocused',
+                    'model_used' => 'limited',
+                    'rag_status' => 'database_only',
                     'mode' => 'database_only',
                     'mode_name' => '🟡 Mode 2: LIMITED MODE',
                     'mode_color' => '#f59e0b',
@@ -766,7 +856,7 @@ class OpenRouterChatbotController extends Controller
             ],
             'timestamp' => now()->toISOString(),
             'query_type' => 'database_fallback',
-            'model_used' => '🟡 Mode 2: LIMITED MODE',
+            'model_used' => 'limited',
             'rag_status' => 'database_only',
             // Mode metadata for frontend
             'mode' => 'database_only',
@@ -797,5 +887,41 @@ class OpenRouterChatbotController extends Controller
         }
         
         return true;
+    }
+    
+    /**
+     * Log chatbot interaction analytics
+     */
+    private function logAnalytics(
+        int $studentId,
+        string $query,
+        string $queryType,
+        string $response,
+        ?string $modelUsed,
+        float $responseTime,
+        ?int $tokensUsed,
+        bool $fromCache,
+        bool $failed,
+        ?string $errorMessage
+    ): void {
+        try {
+            \DB::table('chatbot_analytics')->insert([
+                'student_id' => $studentId,
+                'query' => substr($query, 0, 1000), // Limit to 1000 chars
+                'query_type' => $queryType,
+                'response' => substr($response, 0, 1000), // Limit to 1000 chars
+                'model_used' => $modelUsed,
+                'response_time_ms' => round($responseTime),
+                'tokens_used' => $tokensUsed,
+                'from_cache' => $fromCache,
+                'failed' => $failed,
+                'error_message' => $errorMessage ? substr($errorMessage, 0, 255) : null,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        } catch (\Exception $e) {
+            // Don't let analytics logging errors break the chatbot
+            Log::warning('Failed to log analytics: ' . $e->getMessage());
+        }
     }
 }

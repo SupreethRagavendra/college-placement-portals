@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="{{ route('student.dashboard') }}">
-            <img src="{{ asset('css/logo1-removebg-preview.png') }}" alt="College Logo" style="height: 40px; margin-right: 10px;">
+            <img src="{{ asset('css/logo1-removebg-preview.png') }}" alt="College Logo" style="height: 40px; margin-right: 10px;" loading="lazy">
             College Placement Portal
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">

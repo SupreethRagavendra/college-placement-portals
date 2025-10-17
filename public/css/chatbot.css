@@ -1,10 +1,10 @@
-/* Chatbot Styles - Modern Design */
+/* Chatbot Styles - KIT Design with Red Theme */
 
 :root {
-    --chatbot-primary: #667eea;
-    --chatbot-primary-hover: #764ba2;
-    --chatbot-primary-light: #ede9fe;
-    --chatbot-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --chatbot-primary: #DC143C;
+    --chatbot-primary-hover: #B91C1C;
+    --chatbot-primary-light: #fee2e2;
+    --chatbot-gradient: linear-gradient(135deg, #DC143C 0%, #B91C1C 100%);
     --chatbot-secondary: #64748b;
     --chatbot-success: #10b981;
     --chatbot-background: #ffffff;
@@ -12,8 +12,8 @@
     --chatbot-border: #e2e8f0;
     --chatbot-text: #1e293b;
     --chatbot-text-muted: #64748b;
-    --chatbot-shadow: 0 10px 25px rgba(102, 126, 234, 0.15);
-    --chatbot-shadow-lg: 0 20px 40px rgba(102, 126, 234, 0.2);
+    --chatbot-shadow: 0 10px 25px rgba(220, 20, 60, 0.15);
+    --chatbot-shadow-lg: 0 20px 40px rgba(220, 20, 60, 0.2);
 }
 
 /* Container and Positioning */
@@ -30,7 +30,7 @@
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #DC143C 0%, #B91C1C 100%);
     border: none;
     color: white;
     cursor: pointer;
@@ -43,7 +43,7 @@
 }
 
 .chatbot-toggle:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #5f4aa8 100%);
+    background: linear-gradient(135deg, #B91C1C 0%, #991B1B 100%);
     transform: translateY(-2px);
     box-shadow: var(--chatbot-shadow-lg);
 }
@@ -131,7 +131,7 @@
 
 /* Chat Header */
 .chatbot-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #DC143C 0%, #B91C1C 100%);
     color: white;
     padding: 24px;
     border-radius: 20px 20px 0 0;
@@ -288,14 +288,14 @@
 .message-avatar {
     width: 36px;
     height: 36px;
-    background: var(--chatbot-primary);
+    background: linear-gradient(135deg, #DC143C 0%, #B91C1C 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 2px 8px rgba(220, 20, 60, 0.3);
 }
 
 .user-message {
@@ -328,11 +328,11 @@
 }
 
 .user-message .message-bubble {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #DC143C 0%, #B91C1C 100%);
     color: white;
     border-radius: 18px 18px 4px 18px;
-    border: 1px solid #667eea;
-    box-shadow: 0 2px 12px rgba(102, 126, 234, 0.2);
+    border: 1px solid #DC143C;
+    box-shadow: 0 2px 12px rgba(220, 20, 60, 0.3);
 }
 
 .message-bubble p {
@@ -415,16 +415,16 @@
 }
 
 .quick-action-btn:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #DC143C 0%, #B91C1C 100%);
+    border-color: #DC143C;
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 16px rgba(220, 20, 60, 0.3);
 }
 
 .quick-action-btn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+    box-shadow: 0 2px 8px rgba(220, 20, 60, 0.2);
 }
 
 /* Typing Indicator */
@@ -438,7 +438,7 @@
 .typing-dot {
     width: 10px;
     height: 10px;
-    background: #667eea;
+    background: #DC143C;
     border-radius: 50%;
     animation: typing 1.6s infinite ease-in-out;
 }
@@ -483,7 +483,7 @@
 
 .input-group:focus-within {
     border-color: var(--chatbot-primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.1);
 }
 
 .chatbot-input {
@@ -506,7 +506,7 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #DC143C 0%, #B91C1C 100%);
     border: none;
     color: white;
     cursor: pointer;
@@ -514,18 +514,18 @@
     align-items: center;
     justify-content: center;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 8px rgba(220, 20, 60, 0.3);
 }
 
 .chatbot-send:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #5f4aa8 100%);
+    background: linear-gradient(135deg, #B91C1C 0%, #991B1B 100%);
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 16px rgba(220, 20, 60, 0.4);
 }
 
 .chatbot-send:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 2px 8px rgba(220, 20, 60, 0.2);
 }
 
 .chatbot-send:disabled {
@@ -695,9 +695,9 @@
 /* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
     :root {
-        --chatbot-primary: #3b82f6;
-        --chatbot-primary-hover: #2563eb;
-        --chatbot-primary-light: #1e3a8a;
+        --chatbot-primary: #DC143C;
+        --chatbot-primary-hover: #B91C1C;
+        --chatbot-primary-light: #3f1d1d;
         --chatbot-secondary: #6b7280;
         --chatbot-success: #10b981;
         --chatbot-background: #1f2937;
@@ -714,12 +714,12 @@
     }
 
     .user-message .message-bubble {
-        background: var(--chatbot-primary);
+        background: linear-gradient(135deg, #DC143C 0%, #B91C1C 100%);
         border-color: var(--chatbot-primary);
     }
 
     .quick-action-btn:hover {
-        background: var(--chatbot-primary);
+        background: linear-gradient(135deg, #DC143C 0%, #B91C1C 100%);
         border-color: var(--chatbot-primary);
     }
 }
@@ -742,17 +742,17 @@
 
 /* Focus states */
 .chatbot-toggle:focus-visible {
-    outline: 3px solid rgba(37, 99, 235, 0.3);
+    outline: 3px solid rgba(220, 20, 60, 0.3);
     outline-offset: 2px;
 }
 
 .chatbot-send:focus-visible {
-    outline: 2px solid rgba(37, 99, 235, 0.5);
+    outline: 2px solid rgba(220, 20, 60, 0.5);
     outline-offset: 2px;
 }
 
 .quick-action-btn:focus-visible {
-    outline: 2px solid rgba(37, 99, 235, 0.5);
+    outline: 2px solid rgba(220, 20, 60, 0.5);
     outline-offset: 2px;
 }
 

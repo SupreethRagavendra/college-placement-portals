@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
-use App\Services\SupabaseService;
+use App\Mail\StudentStatusMail;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class TestEmailNotification extends Command
 {
@@ -12,30 +14,14 @@ class TestEmailNotification extends Command
      *
      * @var string
      */
-    protected $signature = 'email:test 
-                           {email : The recipient email address}
-                           {name : The recipient name}
-                           {status : The status (approved/rejected)}
-                           {--reason= : Rejection reason (only for rejected status)}
-                           {--async : Send email asynchronously}';
+    protected $signature = 'test:email {email : The email address to test} {status=approved : The status (approved or rejected)}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Test email notification functionality';
-
-    protected $supabaseService;
-
-    /**
-     * Create a new command instance.
-     */
-    public function __construct(SupabaseService $supabaseService)
-    {
-        parent::__construct();
-        $this->supabaseService = $supabaseService;
-    }
+    protected $description = 'Test email notification system by sending a test email';
 
     /**
      * Execute the console command.
@@ -43,90 +29,54 @@ class TestEmailNotification extends Command
     public function handle()
     {
         $email = $this->argument('email');
-        $name = $this->argument('name');
         $status = $this->argument('status');
-        $reason = $this->option('reason');
-        $async = $this->option('async');
 
-        // Validate status
         if (!in_array($status, ['approved', 'rejected'])) {
             $this->error('Status must be either "approved" or "rejected"');
             return 1;
         }
 
-        // Validate email format
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->error('Invalid email format');
-            return 1;
-        }
-
-        $this->info('🧪 Testing Email Notification');
-        $this->info('==============================');
-        $this->newLine();
-
-        $this->table(['Parameter', 'Value'], [
-            ['Email', $email],
-            ['Name', $name],
-            ['Status', $status],
-            ['Rejection Reason', $reason ?? 'N/A'],
-            ['Async Mode', $async ? 'Yes' : 'No'],
-        ]);
-
-        $this->newLine();
+        $this->info("Testing {$status} email to: {$email}");
 
         try {
-            if ($async) {
-                $this->info('📤 Sending email asynchronously...');
-                
-                $promise = $this->supabaseService->sendStatusEmailAsync(
-                    $email,
-                    $name,
-                    $status,
-                    $reason
-                );
-                
-                if ($promise) {
-                    $this->info('✅ Email sent asynchronously (check logs for completion)');
-                    
-                    // Optional: Wait for completion in test mode
-                    if ($this->confirm('Wait for email completion? (This may take a few seconds)')) {
-                        try {
-                            $result = $promise->wait();
-                            $this->info('✅ Email completed successfully');
-                            $this->info('Response status: ' . $result->getStatusCode());
-                        } catch (\Exception $e) {
-                            $this->error('❌ Email failed during execution: ' . $e->getMessage());
-                        }
-                    }
-                } else {
-                    $this->warn('⚠️  Email returned null (check logs for errors)');
-                }
-                
-            } else {
-                $this->info('📤 Sending email synchronously...');
-                
-                $result = $this->supabaseService->sendStatusEmail(
-                    $email,
-                    $name,
-                    $status,
-                    $reason
-                );
-                
-                $this->info('✅ Email sent successfully');
-                $this->info('Response: ' . json_encode($result, JSON_PRETTY_PRINT));
-            }
+            // Test Laravel Mail configuration
+            $mailConfig = config('mail');
+            $this->info("Current mail configuration:");
+            $this->info("  MAILER: " . ($mailConfig['default'] ?? 'not set'));
+            $this->info("  HOST: " . ($mailConfig['mailers']['smtp']['host'] ?? 'not set'));
+            $this->info("  PORT: " . ($mailConfig['mailers']['smtp']['port'] ?? 'not set'));
+
+            // Send test email
+            $studentName = 'Test Student';
+            $collegeName = config('app.name', 'College Placement Portal');
+            $rejectionReason = $status === 'rejected' ? 'This is a test rejection reason' : null;
+
+            Mail::to($email, $studentName)->send(new StudentStatusMail(
+                $studentName,
+                $status,
+                $rejectionReason,
+                $collegeName
+            ));
+
+            $this->info("✅ Test email sent successfully!");
+            Log::info("Test email sent successfully", [
+                'to' => $email,
+                'status' => $status,
+                'timestamp' => now()
+            ]);
+
+            return 0;
 
         } catch (\Exception $e) {
-            $this->error('❌ Email sending failed: ' . $e->getMessage());
+            $this->error("❌ Failed to send test email: " . $e->getMessage());
+            Log::error("Test email failed", [
+                'to' => $email,
+                'status' => $status,
+                'error' => $e->getMessage(),
+                'timestamp' => now()
+            ]);
+
             return 1;
         }
-
-        $this->newLine();
-        $this->info('📋 Next Steps:');
-        $this->line('• Check the recipient\'s email inbox (and spam folder)');
-        $this->line('• Monitor Supabase function logs: supabase functions logs send-status-email');
-        $this->line('• Check Laravel logs: tail -f storage/logs/laravel.log');
-
-        return 0;
     }
 }

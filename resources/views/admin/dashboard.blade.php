@@ -4,45 +4,92 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Admin Dashboard - College Placement Portal</title>
+    <title>Admin Dashboard - KIT Placement Training Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
+        :root {
+            --primary-red: #DC143C;
+            --dark-red: #B91C1C;
+            --light-red: #EF4444;
+            --black: #1A1A1A;
+            --dark-gray: #2D2D2D;
+            --white: #FFFFFF;
+            --light-gray: #F5F5F5;
+            --text-dark: #333333;
+            --accent-red: #FF0000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Figtree', sans-serif;
+            background: var(--light-gray);
+        }
+
         .sidebar {
             min-height: 100vh;
-            background: linear-gradient(160deg, #6a6ef0 0%, #7a58c9 50%, #5f4aa8 100%);
+            background: linear-gradient(180deg, var(--black) 0%, var(--dark-gray) 100%);
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
         }
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.9);
-            padding: 12px 20px;
-            border-radius: 8px;
-            margin: 5px 0;
-            transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+            padding: 14px 20px;
+            border-radius: 12px;
+            margin: 6px 0;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.95rem;
         }
-        .sidebar .nav-link:hover,
+        
+        .sidebar .nav-link:hover {
+            color: white;
+            background: rgba(220, 20, 60, 0.2);
+            transform: translateX(6px);
+        }
+        
         .sidebar .nav-link.active {
             color: white;
-            background-color: rgba(255, 255, 255, 0.15);
-            transform: translateX(4px);
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+            box-shadow: 0 4px 15px rgba(220, 20, 60, 0.3);
+            transform: translateX(6px);
         }
+        
+        .sidebar h4 {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        
         .main-content {
-            background-color: #f8f9fa;
+            background-color: var(--light-gray);
             min-height: 100vh;
         }
+        
         .card {
             border: none;
-            box-shadow: 0 8px 20px rgba(31, 38, 135, 0.08);
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: var(--white);
         }
+        
         .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 24px rgba(31, 38, 135, 0.12);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
         }
+        
         .stat-card {
-            background: linear-gradient(135deg, #6f7bf7 0%, #7a56d0 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
             color: white;
             position: relative;
             overflow: hidden;
+            border-radius: 15px;
         }
         .stat-card .icon-wrap {
             position: absolute;
@@ -56,27 +103,102 @@
             min-width: 2ch;
         }
         .btn-quick {
-            border-radius: 999px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            padding: 12px 24px;
         }
+        
         .btn-quick:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 18px rgba(0,0,0,0.08);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(220, 20, 60, 0.3);
         }
+        
         .avatar {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: #e9ecef;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
-            color: #6c757d;
+            font-weight: 700;
+            color: white;
+            font-size: 1.1rem;
         }
+        
         .scrollable {
             max-height: 300px;
             overflow: auto;
+        }
+        
+        .navbar {
+            background: var(--white) !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            border-bottom: 3px solid var(--primary-red);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--text-dark) !important;
+            font-size: 1.3rem;
+        }
+        
+        .card-header {
+            background: var(--white);
+            border-bottom: 2px solid var(--light-gray);
+            padding: 1.25rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+        
+        .table {
+            font-size: 0.95rem;
+        }
+        
+        .table thead {
+            background: var(--light-gray);
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            border: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+            border: none;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ffca3a 0%, #f4a600 100%);
+            border: none;
+            color: var(--text-dark);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+            border: none;
+        }
+        
+        .btn-outline-primary {
+            border-color: var(--primary-red);
+            color: var(--primary-red);
+        }
+        
+        .btn-outline-primary:hover {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+            border-color: var(--primary-red);
+            color: white;
         }
     </style>
 </head>
@@ -86,10 +208,10 @@
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 px-0">
                 <div class="sidebar">
-                    <div class="p-3">
+                    <div class="p-4">
                         <h4 class="text-white mb-4">
-                            <i class="fas fa-graduation-cap me-2"></i>
-                            Admin Panel
+                            <i class="fas fa-shield-alt me-2"></i>
+                             Admin Portal
                         </h4>
                         <nav class="nav flex-column">
                             <a class="nav-link active" href="#dashboard">
@@ -129,7 +251,10 @@
                     <!-- Top Navigation -->
                     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
                         <div class="container-fluid">
-                            <h5 class="navbar-brand mb-0">Admin Dashboard</h5>
+                            <h5 class="navbar-brand mb-0">
+                                <i class="fas fa-chart-line me-2" style="color: var(--primary-red);"></i>
+                                Training Portal Dashboard
+                            </h5>
                             <div class="navbar-nav ms-auto">
                                 <span class="navbar-text me-3">
                                     Welcome, {{ Auth::user()->name }}!
@@ -140,12 +265,9 @@
                                         {{ Auth::user()->name }}
                                     </button>
                                     <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="#profile">Profile</a></li>
-                                        <li><a class="dropdown-item" href="#settings">Settings</a></li>
-                                        <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <a class="dropdown-item" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                                Logout
+                                                <i class="fas fa-sign-out-alt me-2"></i>Logout
                                             </a>
                                         </li>
                                     </ul>
@@ -274,10 +396,12 @@
                                                                 <td><span class="badge bg-info">{{ $assessment->questions_count }}</span></td>
                                                                 <td><span class="badge bg-secondary">{{ $assessment->student_results_count }}</span></td>
                                                                 <td>
-                                                                    @if($assessment->is_active)
+                                                                    @if($assessment->status == 'active')
                                                                         <span class="badge bg-success">Active</span>
-                                                                    @else
+                                                                    @elseif($assessment->status == 'inactive')
                                                                         <span class="badge bg-secondary">Inactive</span>
+                                                                    @else
+                                                                        <span class="badge bg-warning">Draft</span>
                                                                     @endif
                                                                 </td>
                                                                 <td class="text-end">
@@ -579,6 +703,63 @@
                 }
             });
         }
+
+        // ==========================================
+        // AUTO-UPDATE STATS ONLY (4 NUMBERS)
+        // ==========================================
+        
+        // Update only the 4 stat numbers every 5 seconds
+        function updateStatsOnly() {
+            // Add timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            fetch('/admin/dashboard/stats?_=' + timestamp, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache'
+                },
+                cache: 'no-store'
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Update the 4 numbers
+                const stats = data.stats;
+                const countElements = document.querySelectorAll('.count-up');
+                
+                // Total Students (index 0)
+                if (countElements[0]) {
+                    countElements[0].textContent = stats.total_students || 0;
+                    countElements[0].setAttribute('data-count', stats.total_students || 0);
+                }
+                
+                // Approved Students (index 1)
+                if (countElements[1]) {
+                    countElements[1].textContent = stats.approved_students || 0;
+                    countElements[1].setAttribute('data-count', stats.approved_students || 0);
+                }
+                
+                // Pending Students (index 2)
+                if (countElements[2]) {
+                    countElements[2].textContent = stats.pending_students || 0;
+                    countElements[2].setAttribute('data-count', stats.pending_students || 0);
+                }
+                
+                // Rejected Students (index 3)
+                if (countElements[3]) {
+                    countElements[3].textContent = stats.rejected_students || 0;
+                    countElements[3].setAttribute('data-count', stats.rejected_students || 0);
+                }
+            })
+            .catch(error => {
+                console.log('Stats update failed:', error);
+            });
+        }
+        
+        // Update stats every 5 seconds
+        setInterval(updateStatsOnly, 5000);
+        
+        console.log('✅ Auto-update enabled for 4 stats (every 5 seconds)');
     </script>
 </body>
 </html>

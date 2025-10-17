@@ -5,54 +5,59 @@
 @section('content')
 <div class="container-fluid">
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h3 mb-2">Student Performance Details</h1>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('admin.reports.index') }}">Reports</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('admin.reports.student-performance') }}">Students</a></li>
-                            <li class="breadcrumb-item active">{{ $student->name }}</li>
-                        </ol>
-                    </nav>
-                </div>
-                <div>
-                    <button onclick="window.print()" class="btn btn-secondary">
-                        <i class="fas fa-print"></i> Print Report
-                    </button>
-                    <a href="{{ route('admin.reports.student-performance') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </a>
-                </div>
-            </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2" style="color: var(--text-dark); font-weight: 700;">
+                <i class="fas fa-user-graduate me-2" style="color: var(--primary-red);"></i>
+                Student Performance Details
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb" style="background: transparent; padding: 0; margin: 0;">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}" style="color: var(--primary-red); text-decoration: none;">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.reports.index') }}" style="color: var(--primary-red); text-decoration: none;">Reports</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.reports.student-performance') }}" style="color: var(--primary-red); text-decoration: none;">Students</a></li>
+                    <li class="breadcrumb-item active" style="color: var(--text-dark);">{{ $student->name }}</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="d-flex gap-2">
+            <button onclick="window.print()" class="btn" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; border: none; padding: 10px 20px; border-radius: 50px; font-weight: 600; transition: all 0.3s; box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);">
+                <i class="fas fa-print me-2"></i>Print Report
+            </button>
+            <a href="{{ route('admin.reports.student-performance') }}" class="btn" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); color: white; border: none; padding: 10px 20px; border-radius: 50px; font-weight: 600; text-decoration: none; transition: all 0.3s;">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
         </div>
     </div>
 
     <!-- Student Info Card -->
     <div class="row mb-4">
         <div class="col-md-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
+            <div class="card shadow-sm" style="border: none; border-radius: 15px; overflow: hidden;">
+                <div class="card-body" style="padding: 30px;">
                     <div class="row align-items-center">
                         <div class="col-md-auto">
-                            <div class="avatar-lg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                <span class="h2 mb-0">{{ substr($student->name, 0, 2) }}</span>
+                            <div style="width: 90px; height: 90px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; box-shadow: 0 4px 15px rgba(220, 20, 60, 0.3);">
+                                {{ strtoupper(substr($student->name, 0, 2)) }}
                             </div>
                         </div>
                         <div class="col-md">
-                            <h4 class="mb-1">{{ $student->name }}</h4>
-                            <p class="text-muted mb-2">
-                                <i class="fas fa-envelope"></i> {{ $student->email }}
+                            <h4 class="mb-2" style="font-weight: 700; color: var(--text-dark);">{{ $student->name }}</h4>
+                            <p class="text-muted mb-3" style="font-size: 0.95rem;">
+                                <i class="fas fa-envelope me-1"></i> {{ $student->email }}
                                 <span class="mx-2">|</span>
-                                <i class="fas fa-id-badge"></i> Student ID: {{ $student->id }}
+                                <i class="fas fa-id-badge me-1"></i> Register No: {{ $student->register_number ?? 'N/A' }}
                             </p>
-                            <div class="d-flex gap-3">
-                                <span class="badge bg-info">{{ $overallStats['total_assessments'] }} Assessments Taken</span>
-                                <span class="badge bg-success">{{ number_format($overallStats['pass_rate'], 1) }}% Pass Rate</span>
-                                <span class="badge bg-primary">{{ number_format($overallStats['average_score'], 1) }}% Avg Score</span>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <span class="badge" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 500; font-size: 0.85rem;">
+                                    <i class="fas fa-clipboard-list me-1"></i>{{ $overallStats['total_assessments'] }} Assessments
+                                </span>
+                                <span class="badge" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 500; font-size: 0.85rem;">
+                                    <i class="fas fa-check-circle me-1"></i>{{ number_format($overallStats['pass_rate'], 1) }}% Pass Rate
+                                </span>
+                                <span class="badge" style="background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 500; font-size: 0.85rem;">
+                                    <i class="fas fa-chart-line me-1"></i>{{ number_format($overallStats['average_score'], 1) }}% Avg Score
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -64,16 +69,16 @@
     <!-- Overall Statistics -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Assessments</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $overallStats['total_assessments'] }}</div>
+            <div class="card shadow-sm h-100" style="border: none; border-radius: 15px; border-left: 4px solid var(--primary-red); overflow: hidden;">
+                <div class="card-body" style="padding: 25px;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-uppercase mb-2" style="font-weight: 700; color: var(--primary-red); font-size: 0.8rem; letter-spacing: 0.5px;">Total Assessments</div>
+                            <div class="h4 mb-1" style="font-weight: 700; color: var(--text-dark);">{{ $overallStats['total_assessments'] }}</div>
                             <small class="text-muted">{{ $overallStats['unique_assessments'] }} unique</small>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, rgba(220, 20, 60, 0.1) 0%, rgba(185, 28, 28, 0.1) 100%); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-clipboard-list" style="font-size: 1.5rem; color: var(--primary-red);"></i>
                         </div>
                     </div>
                 </div>
@@ -81,16 +86,16 @@
         </div>
 
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Average Score</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($overallStats['average_score'], 1) }}%</div>
+            <div class="card shadow-sm h-100" style="border: none; border-radius: 15px; border-left: 4px solid #28a745; overflow: hidden;">
+                <div class="card-body" style="padding: 25px;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-uppercase mb-2" style="font-weight: 700; color: #28a745; font-size: 0.8rem; letter-spacing: 0.5px;">Average Score</div>
+                            <div class="h4 mb-1" style="font-weight: 700; color: var(--text-dark);">{{ number_format($overallStats['average_score'], 1) }}%</div>
                             <small class="text-muted">Best: {{ number_format($overallStats['best_score'], 1) }}%</small>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(40, 167, 69, 0.1); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-chart-line" style="font-size: 1.5rem; color: #28a745;"></i>
                         </div>
                     </div>
                 </div>
@@ -98,12 +103,12 @@
         </div>
 
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Time Spent</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+            <div class="card shadow-sm h-100" style="border: none; border-radius: 15px; border-left: 4px solid #17a2b8; overflow: hidden;">
+                <div class="card-body" style="padding: 25px;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-uppercase mb-2" style="font-weight: 700; color: #17a2b8; font-size: 0.8rem; letter-spacing: 0.5px;">Time Spent</div>
+                            <div class="h4 mb-1" style="font-weight: 700; color: var(--text-dark);">
                                 @php
                                     $totalSeconds = $overallStats['total_time_spent'];
                                     $hours = floor($totalSeconds / 3600);
@@ -113,8 +118,8 @@
                             </div>
                             <small class="text-muted">Avg: {{ round($overallStats['average_time'] / 60) }}m</small>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(23, 162, 184, 0.1); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-clock" style="font-size: 1.5rem; color: #17a2b8;"></i>
                         </div>
                     </div>
                 </div>
@@ -122,12 +127,12 @@
         </div>
 
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pass Rate</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($overallStats['pass_rate'], 1) }}%</div>
+            <div class="card shadow-sm h-100" style="border: none; border-radius: 15px; border-left: 4px solid #ffc107; overflow: hidden;">
+                <div class="card-body" style="padding: 25px;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-uppercase mb-2" style="font-weight: 700; color: #ffc107; font-size: 0.8rem; letter-spacing: 0.5px;">Pass Rate</div>
+                            <div class="h4 mb-1" style="font-weight: 700; color: var(--text-dark);">{{ number_format($overallStats['pass_rate'], 1) }}%</div>
                             <small class="text-muted">
                                 @php
                                     $passed = collect($assessmentHistory)->where('score_percentage', '>=', 50)->count();
@@ -135,8 +140,8 @@
                                 {{ $passed }} passed
                             </small>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-trophy fa-2x text-gray-300"></i>
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(255, 193, 7, 0.1); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-trophy" style="font-size: 1.5rem; color: #ffc107;"></i>
                         </div>
                     </div>
                 </div>
@@ -148,11 +153,13 @@
     <div class="row mb-4">
         <!-- Performance Trend Chart -->
         <div class="col-lg-8 mb-3">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Performance Trend (Last 10 Assessments)</h6>
+            <div class="card shadow-sm" style="border: none; border-radius: 15px; overflow: hidden;">
+                <div class="card-header" style="background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); color: white; padding: 20px 25px; border: none;">
+                    <h5 class="card-title mb-0" style="font-weight: 700; font-size: 1.1rem;">
+                        <i class="fas fa-chart-area me-2"></i>Performance Trend (Last 10 Assessments)
+                    </h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="padding: 30px;">
                     <canvas id="performanceTrendChart" height="100"></canvas>
                 </div>
             </div>
@@ -160,17 +167,19 @@
 
         <!-- Grade Distribution -->
         <div class="col-lg-4 mb-3">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Grade Distribution</h6>
+            <div class="card shadow-sm" style="border: none; border-radius: 15px; overflow: hidden;">
+                <div class="card-header" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 20px 25px; border: none;">
+                    <h5 class="card-title mb-0" style="font-weight: 700; font-size: 1.1rem;">
+                        <i class="fas fa-chart-pie me-2"></i>Grade Distribution
+                    </h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="padding: 30px;">
                     <canvas id="gradeChart" height="200"></canvas>
-                    <div class="mt-3">
+                    <div class="mt-4">
                         @foreach($gradeDistribution as $grade => $count)
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="badge bg-{{ $grade == 'A' ? 'success' : ($grade == 'F' ? 'danger' : 'warning') }}">Grade {{ $grade }}</span>
-                            <span>{{ $count }} assessment(s)</span>
+                        <div class="d-flex justify-content-between align-items-center mb-2" style="padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                            <span class="badge" style="background: linear-gradient(135deg, {{ $grade == 'A' ? '#28a745, #218838' : ($grade == 'F' ? '#dc3545, #c82333' : '#ffc107, #e0a800') }}); color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600;">Grade {{ $grade }}</span>
+                            <span style="font-weight: 600; color: var(--text-dark);">{{ $count }} assessment(s)</span>
                         </div>
                         @endforeach
                     </div>
@@ -183,30 +192,32 @@
     <div class="row mb-4">
         <!-- Category Performance -->
         <div class="col-lg-6 mb-3">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Category-wise Performance</h6>
+            <div class="card shadow-sm" style="border: none; border-radius: 15px; overflow: hidden;">
+                <div class="card-header" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; padding: 20px 25px; border: none;">
+                    <h5 class="card-title mb-0" style="font-weight: 700; font-size: 1.1rem;">
+                        <i class="fas fa-layer-group me-2"></i>Category-wise Performance
+                    </h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="padding: 30px;">
                     <canvas id="categoryChart" height="150"></canvas>
                     <div class="table-responsive mt-3">
-                        <table class="table table-sm">
-                            <thead>
+                        <table class="table table-hover" style="border-radius: 8px; overflow: hidden;">
+                            <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
                                 <tr>
-                                    <th>Category</th>
-                                    <th>Attempts</th>
-                                    <th>Avg Score</th>
-                                    <th>Pass Rate</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Category</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Attempts</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Avg Score</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Pass Rate</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($categoryPerformance as $cat)
                                 <tr>
-                                    <td>{{ $cat['category'] ?? 'N/A' }}</td>
-                                    <td>{{ $cat['attempts'] }}</td>
-                                    <td>{{ number_format($cat['average_score'], 1) }}%</td>
-                                    <td>
-                                        <span class="badge bg-{{ $cat['pass_rate'] >= 60 ? 'success' : 'warning' }}">
+                                    <td style="padding: 12px; font-weight: 500;">{{ $cat['category'] ?? 'N/A' }}</td>
+                                    <td style="padding: 12px;">{{ $cat['attempts'] }}</td>
+                                    <td style="padding: 12px; font-weight: 600;">{{ number_format($cat['average_score'], 1) }}%</td>
+                                    <td style="padding: 12px;">
+                                        <span class="badge" style="background: linear-gradient(135deg, {{ $cat['pass_rate'] >= 60 ? '#28a745, #218838' : '#ffc107, #e0a800' }}); color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600;">
                                             {{ number_format($cat['pass_rate'], 1) }}%
                                         </span>
                                     </td>
@@ -221,33 +232,35 @@
 
         <!-- Difficulty Performance -->
         <div class="col-lg-6 mb-3">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Difficulty-wise Performance</h6>
+            <div class="card shadow-sm" style="border: none; border-radius: 15px; overflow: hidden;">
+                <div class="card-header" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: white; padding: 20px 25px; border: none;">
+                    <h5 class="card-title mb-0" style="font-weight: 700; font-size: 1.1rem;">
+                        <i class="fas fa-signal me-2"></i>Difficulty-wise Performance
+                    </h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="padding: 30px;">
                     <canvas id="difficultyChart" height="150"></canvas>
                     <div class="table-responsive mt-3">
-                        <table class="table table-sm">
-                            <thead>
+                        <table class="table table-hover" style="border-radius: 8px; overflow: hidden;">
+                            <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
                                 <tr>
-                                    <th>Difficulty</th>
-                                    <th>Attempts</th>
-                                    <th>Avg Score</th>
-                                    <th>Pass Rate</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Difficulty</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Attempts</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Avg Score</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Pass Rate</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($difficultyPerformance as $diff)
                                 <tr>
-                                    <td>
-                                        <span class="badge bg-{{ strtolower($diff['difficulty']) == 'easy' ? 'success' : (strtolower($diff['difficulty']) == 'hard' ? 'danger' : 'warning') }}">
+                                    <td style="padding: 12px;">
+                                        <span class="badge" style="background: linear-gradient(135deg, {{ strtolower($diff['difficulty']) == 'easy' ? '#28a745, #218838' : (strtolower($diff['difficulty']) == 'hard' ? '#dc3545, #c82333' : '#ffc107, #e0a800') }}); color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600;">
                                             {{ $diff['difficulty'] }}
                                         </span>
                                     </td>
-                                    <td>{{ $diff['attempts'] }}</td>
-                                    <td>{{ $diff['average_score'] }}%</td>
-                                    <td>{{ $diff['pass_rate'] }}%</td>
+                                    <td style="padding: 12px;">{{ $diff['attempts'] }}</td>
+                                    <td style="padding: 12px; font-weight: 600;">{{ $diff['average_score'] }}%</td>
+                                    <td style="padding: 12px; font-weight: 600;">{{ $diff['pass_rate'] }}%</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -261,68 +274,71 @@
     <!-- Assessment History Table -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Complete Assessment History</h6>
-                    <span class="badge bg-secondary">{{ $assessmentHistory->count() }} Total Attempts</span>
+            <div class="card shadow-sm" style="border: none; border-radius: 15px; overflow: hidden;">
+                <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); color: white; padding: 20px 25px; border: none;">
+                    <h5 class="card-title mb-0" style="font-weight: 700; font-size: 1.1rem;">
+                        <i class="fas fa-history me-2"></i>Complete Assessment History
+                    </h5>
+                    <span class="badge" style="background: rgba(255, 255, 255, 0.2); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 600;">{{ $assessmentHistory->count() }} Total Attempts</span>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="padding: 25px;">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="assessmentHistoryTable">
-                            <thead class="table-light">
+                        <table class="table table-hover" id="assessmentHistoryTable" style="border-radius: 8px; overflow: hidden;">
+                            <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Assessment</th>
-                                    <th>Category</th>
-                                    <th>Difficulty</th>
-                                    <th>Score</th>
-                                    <th>Grade</th>
-                                    <th>Time Taken</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Date</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Assessment</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Category</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Difficulty</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Score</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Grade</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Time Taken</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Status</th>
+                                    <th style="font-weight: 700; color: var(--text-dark); padding: 12px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($assessmentHistory as $attempt)
                                 <tr>
-                                    <td>{{ $attempt->submitted_at ? $attempt->submitted_at->format('M d, Y') : 'N/A' }}</td>
-                                    <td>{{ $attempt->assessment->name ?? 'N/A' }}</td>
-                                    <td>
-                                        <span class="badge bg-info">{{ $attempt->assessment->category ?? 'N/A' }}</span>
+                                    <td style="padding: 12px; font-weight: 500;">{{ $attempt->submitted_at ? $attempt->submitted_at->format('M d, Y') : 'N/A' }}</td>
+                                    <td style="padding: 12px; font-weight: 500;">{{ $attempt->assessment->name ?? 'N/A' }}</td>
+                                    <td style="padding: 12px;">
+                                        <span class="badge" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600;">{{ $attempt->assessment->category ?? 'N/A' }}</span>
                                     </td>
-                                    <td>
-                                        <span class="badge bg-{{ ($attempt->assessment->difficulty_level ?? '') == 'easy' ? 'success' : (($attempt->assessment->difficulty_level ?? '') == 'hard' ? 'danger' : 'warning') }}">
+                                    <td style="padding: 12px;">
+                                        <span class="badge" style="background: linear-gradient(135deg, {{ ($attempt->assessment->difficulty_level ?? '') == 'easy' ? '#28a745, #218838' : (($attempt->assessment->difficulty_level ?? '') == 'hard' ? '#dc3545, #c82333' : '#ffc107, #e0a800') }}); color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600;">
                                             {{ ucfirst($attempt->assessment->difficulty_level ?? 'N/A') }}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td style="padding: 12px;">
                                         <strong>{{ $attempt->score }}/{{ $attempt->total_questions }}</strong>
                                         <br>
                                         <small class="text-muted">{{ number_format($attempt->score_percentage, 1) }}%</small>
                                     </td>
-                                    <td>
-                                        <span class="badge bg-{{ $attempt->grade == 'A' ? 'success' : ($attempt->grade == 'F' ? 'danger' : 'warning') }}">
+                                    <td style="padding: 12px;">
+                                        <span class="badge" style="background: linear-gradient(135deg, {{ $attempt->grade == 'A' ? '#28a745, #218838' : ($attempt->grade == 'F' ? '#dc3545, #c82333' : '#ffc107, #e0a800') }}); color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600;">
                                             {{ $attempt->grade }}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td style="padding: 12px; font-weight: 500;">
                                         @php
                                             $minutes = floor($attempt->time_taken / 60);
                                             $seconds = $attempt->time_taken % 60;
                                         @endphp
                                         {{ $minutes }}m {{ $seconds }}s
                                     </td>
-                                    <td>
+                                    <td style="padding: 12px;">
                                         @if($attempt->score_percentage >= 50)
-                                            <span class="badge bg-success">Passed</span>
+                                            <span class="badge" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600;">Passed</span>
                                         @else
-                                            <span class="badge bg-danger">Failed</span>
+                                            <span class="badge" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600;">Failed</span>
                                         @endif
                                     </td>
-                                    <td>
+                                    <td style="padding: 12px;">
                                         <a href="{{ route('admin.reports.assessment-details', $attempt->assessment_id) }}" 
-                                           class="btn btn-sm btn-outline-primary" 
-                                           title="View Assessment Details">
+                                           class="btn btn-sm" 
+                                           title="View Assessment Details"
+                                           style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; transition: all 0.3s;">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </td>
@@ -338,36 +354,48 @@
 </div>
 @endsection
 
-@section('styles')
+@push('styles')
 <style>
-    .border-left-primary {
-        border-left: 4px solid #4e73df !important;
+:root {
+    --primary-red: #DC143C;
+    --dark-red: #B91C1C;
+    --light-red: #EF4444;
+    --black: #1A1A1A;
+    --dark-gray: #2D2D2D;
+    --white: #FFFFFF;
+    --light-gray: #F5F5F5;
+    --text-dark: #333333;
+    --accent-red: #FF0000;
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(220, 20, 60, 0.05);
+}
+
+@media print {
+    .btn, nav {
+        display: none !important;
     }
-    .border-left-success {
-        border-left: 4px solid #1cc88a !important;
-    }
-    .border-left-info {
-        border-left: 4px solid #36b9cc !important;
-    }
-    .border-left-warning {
-        border-left: 4px solid #f6c23e !important;
-    }
-    .text-gray-800 {
-        color: #5a5c69 !important;
-    }
-    .text-gray-300 {
-        color: #dddfeb !important;
-    }
-    @media print {
-        .btn, nav {
-            display: none !important;
-        }
-    }
+}
 </style>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
-@endsection
+@endpush
 
-@section('scripts')
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
@@ -389,9 +417,15 @@ $(document).ready(function() {
             datasets: [{
                 label: 'Score %',
                 data: trendData.map(d => d.score),
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.1
+                borderColor: '#DC143C',
+                backgroundColor: 'rgba(220, 20, 60, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: '#DC143C',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
             }]
         },
         options: {
@@ -425,11 +459,11 @@ $(document).ready(function() {
             datasets: [{
                 data: Object.values(gradeData),
                 backgroundColor: [
-                    'rgba(40, 167, 69, 0.8)',
-                    'rgba(255, 193, 7, 0.8)',
-                    'rgba(253, 126, 20, 0.8)',
-                    'rgba(220, 53, 69, 0.8)',
-                    'rgba(220, 53, 69, 1)'
+                    '#28a745',
+                    '#ffc107',
+                    '#fd7e14',
+                    '#dc3545',
+                    '#DC143C'
                 ]
             }]
         },
@@ -453,7 +487,8 @@ $(document).ready(function() {
             datasets: [{
                 label: 'Average Score %',
                 data: categoryData.map(c => c.average_score),
-                backgroundColor: 'rgba(54, 162, 235, 0.8)'
+                backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                borderRadius: 8
             }]
         },
         options: {
@@ -482,13 +517,13 @@ $(document).ready(function() {
             datasets: [{
                 label: 'Average Score',
                 data: difficultyData.map(d => d.average_score),
-                borderColor: 'rgb(255, 99, 132)',
-                backgroundColor: 'rgba(255, 99, 132, 0.2)'
+                borderColor: '#DC143C',
+                backgroundColor: 'rgba(220, 20, 60, 0.2)'
             }, {
                 label: 'Pass Rate',
                 data: difficultyData.map(d => d.pass_rate),
-                borderColor: 'rgb(54, 162, 235)',
-                backgroundColor: 'rgba(54, 162, 235, 0.2)'
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.2)'
             }]
         },
         options: {
@@ -509,4 +544,4 @@ $(document).ready(function() {
     });
 });
 </script>
-@endsection
+@endpush

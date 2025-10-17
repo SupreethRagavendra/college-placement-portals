@@ -40,8 +40,16 @@ class StudentStatusMail extends Mailable
 
         return new Envelope(
             subject: $subject,
-            from: 'noreply@collegeportal.local',
-            replyTo: 'supreethvennila@gmail.com'
+            from: new \Illuminate\Mail\Mailables\Address(
+                config('mail.from.address'),
+                config('mail.from.name', $this->collegeName)
+            ),
+            replyTo: [
+                new \Illuminate\Mail\Mailables\Address(
+                    config('mail.from.address'),
+                    config('mail.from.name', $this->collegeName)
+                )
+            ]
         );
     }
 
@@ -50,7 +58,7 @@ class StudentStatusMail extends Mailable
      */
     public function content(): Content
     {
-        $view = $this->status === 'approved' 
+        $view = $this->status === 'approved'
             ? 'emails.student-approved'
             : 'emails.student-rejected';
 
@@ -64,6 +72,26 @@ class StudentStatusMail extends Mailable
                 'portalUrl' => config('app.url', 'http://localhost:8000')
             ]
         );
+    }
+
+    /**
+     * Build the message.
+     */
+    public function build()
+    {
+        $view = $this->status === 'approved'
+            ? 'emails.student-approved'
+            : 'emails.student-rejected';
+
+        return $this->view($view)
+                    ->with([
+                        'studentName' => $this->studentName,
+                        'status' => $this->status,
+                        'rejectionReason' => $this->rejectionReason,
+                        'collegeName' => $this->collegeName,
+                        'portalUrl' => config('app.url', 'http://localhost:8000')
+                    ])
+                    ->subject($this->envelope()->subject);
     }
 
     /**

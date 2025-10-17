@@ -18,6 +18,8 @@ from openrouter_client import OpenRouterClient
 from context_handler import ContextHandler
 from response_formatter import ResponseFormatter
 from knowledge_sync import KnowledgeSync
+from vector_store import VectorStore
+from response_cache import ResponseCache
 
 # Load environment variables
 load_dotenv()
@@ -62,8 +64,25 @@ try:
         api_url=os.getenv('OPENROUTER_API_URL')
     )
     
-    context_handler = ContextHandler(openrouter_client=openrouter_client)
+    # Initialize vector store for RAG
+    try:
+        vector_store = VectorStore()
+        logger.info("Vector store initialized successfully")
+    except Exception as ve:
+        logger.warning(f"Vector store initialization failed: {ve}")
+        logger.warning("RAG will operate without vector search")
+        vector_store = None
+    
+    context_handler = ContextHandler(
+        openrouter_client=openrouter_client,
+        vector_store=vector_store  # Pass vector store for RAG
+    )
     response_formatter = ResponseFormatter()
+    
+    # Initialize response cache (5 minutes TTL)
+    response_cache = ResponseCache(ttl_seconds=300)
+    logger.info("Response cache initialized")
+    
     knowledge_sync = KnowledgeSync(
         db_host=os.getenv('SUPABASE_DB_HOST'),
         db_port=os.getenv('SUPABASE_DB_PORT'),
@@ -84,6 +103,7 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=500, description="Student's question")
     student_email: Optional[str] = Field(None, description="Student email")
     student_name: Optional[str] = Field(None, description="Student name")
+    conversation_history: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Conversation history")
 
 
 class ChatResponse(BaseModel):
@@ -162,6 +182,15 @@ async def chat(request: ChatRequest):
     logger.info(f"Chat request from student {request.student_id}: {request.message}")
     
     try:
+        # Check cache first (only for non-personalized queries)
+        if response_cache.should_cache(request.message):
+            cached = response_cache.get(request.message, request.student_id)
+            if cached:
+                logger.info(f"Returning cached response for student {request.student_id}")
+                cached['from_cache'] = True
+                cached['timestamp'] = datetime.utcnow().isoformat() + "Z"
+                return cached
+        
         # Get student-specific context from database
         try:
             student_context = knowledge_sync.get_student_context(request.student_id)
@@ -175,13 +204,14 @@ async def chat(request: ChatRequest):
                 'performance_summary': {}
             }
         
-        # Process query with context handler (includes OpenRouter + fallback)
+        # Process query with context handler (includes OpenRouter + fallback + RAG)
         message, data, query_type, model_used = context_handler.process_query(
             student_id=request.student_id,
             query=request.message,
             student_context=student_context,
             student_email=request.student_email,
-            student_name=request.student_name
+            student_name=request.student_name,
+            conversation_history=request.conversation_history  # Add conversation history for context
         )
         
         # Format response with status indicators
@@ -192,6 +222,13 @@ async def chat(request: ChatRequest):
             student_id=request.student_id,
             model_used=model_used
         )
+        
+        # Cache response if appropriate (non-personalized queries)
+        if response_cache.should_cache(request.message, query_type):
+            response_cache.set(request.message, request.student_id, response)
+            logger.info(f"Response cached for future requests")
+        
+        response['from_cache'] = False
         
         logger.info(f"Response generated successfully for student {request.student_id} using model {model_used}")
         return response

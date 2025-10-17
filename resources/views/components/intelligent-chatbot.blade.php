@@ -65,10 +65,10 @@
                         <div class="avatar-ai">🤖</div>
                     </div>
                     <div>
-                        <h3 class="chatbot-title">Placement Assistant</h3>
+                        <h3 class="chatbot-title">Campus AI Assistant</h3>
                         <p class="chatbot-status">
-                            <span class="status-dot" id="status-dot"></span>
-                            <span id="assistant-status">Ready to help</span>
+                            <span class="status-dot status-online" id="status-dot"></span>
+                            <span id="assistant-status">Online</span>
                         </p>
                     </div>
                 </div>
@@ -76,7 +76,7 @@
                 <div class="header-actions">
                     <!-- Mode Badge -->
                     <div id="mode-badge" style="
-                        background: rgba(255,255,255,0.25);
+                        background: rgba(46, 213, 115, 0.2);
                         padding: 6px 12px;
                         border-radius: 20px;
                         font-size: 11px;
@@ -86,10 +86,11 @@
                         gap: 5px;
                         margin-right: 10px;
                         backdrop-filter: blur(10px);
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                        box-shadow: 0 2px 8px rgba(46, 213, 115, 0.3);
+                        border: 1px solid rgba(46, 213, 115, 0.4);
                     ">
-                        <span id="mode-emoji">🟢</span>
-                        <span id="mode-text">RAG Active</span>
+                        <span id="mode-emoji" style="animation: pulse 2s infinite;">🟢</span>
+                        <span id="mode-text" style="color: #2ed573;">Online Mode</span>
                     </div>
                     
                     <button id="clear-chat" class="header-action-btn" title="Clear Chat">
@@ -209,9 +210,9 @@
                 </form>
                 
                 <div class="chatbot-footer">
-                    <span>Powered by Advanced AI</span>
+                    <span>KIT Placement Portal Assistant</span>
                     <span class="separator">•</span>
-                    <span id="confidence-indicator">High Confidence</span>
+                    <span id="confidence-indicator">Always Available</span>
                 </div>
             </div>
         </div>

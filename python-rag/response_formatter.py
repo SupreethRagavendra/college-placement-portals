@@ -49,7 +49,7 @@ class ResponseFormatter:
                 "follow_up_questions": follow_up_questions,
                 "timestamp": datetime.utcnow().isoformat() + "Z",
                 "query_type": query_type,
-                "model_used": model_used,
+                "model_used": "Campus AI",  # Hide technical model names - user-friendly
                 "rag_status": rag_status,
                 "service_info": {
                     "indicator": self._get_status_emoji(rag_status),
@@ -75,7 +75,7 @@ class ResponseFormatter:
                 "follow_up_questions": [],
                 "timestamp": datetime.utcnow().isoformat() + "Z",
                 "query_type": query_type,
-                "model_used": model_used
+                "model_used": "Campus AI"  # Hide technical model names
             }
     
     def _parse_message_for_data(self, message: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -217,15 +217,15 @@ class ResponseFormatter:
         return actions
     
     def _get_rag_status(self, model_used: Optional[str]) -> str:
-        """Determine RAG status from model used"""
+        """Determine RAG status from model used - Returns user-friendly name"""
         if not model_used or model_used == 'unknown':
             return 'offline'
         elif 'qwen' in model_used.lower():
-            return model_used  # Return full model name for primary
+            return 'Campus AI'  # Hide technical model name - user-friendly
         elif 'deepseek' in model_used.lower():
-            return model_used  # Return full model name for fallback  
+            return 'Campus AI'  # Hide technical model name - user-friendly
         elif model_used == 'fallback':
-            return 'fallback'
+            return 'Campus AI'  # Hide technical model name
         else:
             return 'operational'
     

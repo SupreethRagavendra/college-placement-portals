@@ -36,8 +36,8 @@ class AdminController extends Controller
             return redirect()->route('login')->withErrors(['error' => 'Unauthorized access.']);
         }
 
-        // Cache dashboard statistics for 1 minute (reduced from 5 minutes for faster updates)
-        $stats = Cache::remember('admin_dashboard_stats', 60, function() {
+        // Cache dashboard statistics for 10 minutes - AGGRESSIVE CACHING for speed
+        $stats = Cache::remember('admin_dashboard_stats', 600, function() {
             return [
                 'total_students' => User::where('role', 'student')->count(),
                 'approved_students' => User::approved()->count(),
@@ -50,16 +50,16 @@ class AdminController extends Controller
             ];
         });
 
-        // Cache average score calculation for 1 minute (reduced from 5 minutes for faster updates)
-        $stats['average_score'] = Cache::remember('admin_dashboard_avg_score', 60, function() {
+        // Cache average score calculation for 10 minutes - AGGRESSIVE CACHING for speed
+        $stats['average_score'] = Cache::remember('admin_dashboard_avg_score', 600, function() {
             $averageScore = StudentResult::selectRaw('AVG((score / total_questions) * 100) as avg_percentage')
                 ->value('avg_percentage');
             return round($averageScore ?? 0, 2);
         });
 
-        // Cache recent assessments for 2 minutes
-        $recentAssessments = Cache::remember('admin_recent_assessments', 120, function() {
-            return Assessment::withCount('studentResults')
+        // Cache recent assessments for 10 minutes - AGGRESSIVE CACHING for speed
+        $recentAssessments = Cache::remember('admin_recent_assessments', 600, function() {
+            return Assessment::withCount(['questions', 'studentResults'])
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
                 ->get();
@@ -117,13 +117,13 @@ class AdminController extends Controller
                 });
         });
 
-        // Cache pending students for 1 minute (more frequently updated)
-        $pendingStudents = Cache::remember('admin_pending_students', 60, function() {
+        // Cache pending students for 5 minutes - AGGRESSIVE CACHING for speed
+        $pendingStudents = Cache::remember('admin_pending_students', 300, function() {
             return User::pending()->orderBy('created_at', 'desc')->get();
         });
 
-        // Cache recent approvals for 2 minutes
-        $recentApprovals = Cache::remember('admin_recent_approvals', 120, function() {
+        // Cache recent approvals for 10 minutes - AGGRESSIVE CACHING for speed
+        $recentApprovals = Cache::remember('admin_recent_approvals', 600, function() {
             return User::approved()->orderBy('admin_approved_at', 'desc')->limit(5)->get();
         });
 
@@ -224,7 +224,20 @@ class AdminController extends Controller
             Cache::forget('admin_recent_approvals');
 
             // Send approval email asynchronously (non-blocking)
+            \Log::info("ADMIN CONTROLLER APPROVAL: About to send email", [
+                'student_id' => $student->id,
+                'student_email' => $student->email,
+                'student_name' => $student->name,
+                'timestamp' => now()
+            ]);
+            
             $this->sendStatusEmailAsync($student, 'approved');
+            
+            \Log::info("ADMIN CONTROLLER APPROVAL: Email sending initiated", [
+                'student_id' => $student->id,
+                'student_email' => $student->email,
+                'timestamp' => now()
+            ]);
 
             $message = "Student {$student->name} has been approved successfully.";
             

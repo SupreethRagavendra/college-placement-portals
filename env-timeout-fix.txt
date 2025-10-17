@@ -1,0 +1,43 @@
+# Database Configuration for Timeout Fix
+# Copy these settings to your .env file
+
+# Database Connection
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=your_database_name
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+
+# Database SSL Mode (use 'prefer' instead of 'require' for better compatibility)
+DB_SSLMODE=prefer
+
+# Cache Configuration (using file instead of database to avoid timeout issues)
+CACHE_STORE=file
+CACHE_PREFIX=college-placement-portal-cache-
+
+# Session Configuration (using file instead of database)
+SESSION_DRIVER=file
+SESSION_LIFETIME=720
+SESSION_CONNECTION=null
+
+# Database Connection Pool Settings
+DB_CACHE_CONNECTION=pgsql_cache
+DB_CACHE_TABLE=cache
+DB_CACHE_LOCK_CONNECTION=pgsql_cache
+DB_CACHE_LOCK_TABLE=cache_locks
+
+# Session Database Settings (if you want to use database sessions later)
+SESSION_TABLE=sessions
+SESSION_CONNECTION=pgsql
+
+# Application Settings
+APP_NAME="College Placement Portal"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost
+
+# Additional Performance Settings
+QUEUE_CONNECTION=sync
+LOG_CHANNEL=stack
+LOG_LEVEL=debug

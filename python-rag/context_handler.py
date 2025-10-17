@@ -9,27 +9,44 @@ import re
 logger = logging.getLogger(__name__)
 
 class ContextHandler:
-    def __init__(self, openrouter_client):
+    def __init__(self, openrouter_client, vector_store=None):
         self.openrouter_client = openrouter_client
+        self.vector_store = vector_store  # Add vector store for RAG
     
     def process_query(self, student_id: int, query: str, student_context: Dict[str, Any], 
-                     student_email: Optional[str] = None, student_name: Optional[str] = None) -> Tuple[str, Dict[str, Any], str, str]:
+                     student_email: Optional[str] = None, student_name: Optional[str] = None,
+                     conversation_history: List[Dict] = None) -> Tuple[str, Dict[str, Any], str, str]:
         """
-        Process a student query with context and generate response using OpenRouter
+        Process a student query with context and generate response using OpenRouter with RAG
         Returns: (message, data, query_type, model_used)
         """
         try:
-            # Determine query type
+            # 1. Classify query type
             query_type = self._classify_query(query)
             logger.info(f"Query classified as: {query_type}")
             
-            # Build prompt based on query type and context
-            prompt_messages = self._build_prompt(query, student_context, query_type, student_name, student_email)
+            # 2. Search vector database for relevant knowledge (RAG component)
+            retrieved_docs = []
+            if self.vector_store:
+                try:
+                    search_results = self.vector_store.search(query, n_results=3)
+                    retrieved_docs = search_results['documents'][0] if search_results['documents'] else []
+                    if retrieved_docs:
+                        logger.info(f"Retrieved {len(retrieved_docs)} relevant documents from knowledge base")
+                except Exception as e:
+                    logger.warning(f"Vector search failed: {e}")
             
-            # Call OpenRouter API with fallback
+            # 3. Build enhanced prompt with retrieved knowledge + conversation history
+            prompt_messages = self._build_enhanced_prompt(
+                query, student_context, query_type, 
+                student_name, student_email,
+                retrieved_docs, conversation_history or []
+            )
+            
+            # 4. Call OpenRouter API with fallback
             response = self.openrouter_client.call_with_fallback(prompt_messages)
             
-            # Extract message and data
+            # 5. Extract message and data
             message = response["choices"][0]["message"]["content"] if response.get("choices") else "No response generated"
             data = response.get("data", {})
             model_used = response.get("model_used", "unknown")
@@ -111,6 +128,7 @@ class ContextHandler:
                      student_name: Optional[str] = None, student_email: Optional[str] = None) -> List[Dict[str, str]]:
         """
         Build an optimized prompt for OpenRouter models based on query type and context
+        (Legacy method - use _build_enhanced_prompt for RAG)
         """
         # System prompt with student information
         system_prompt = self._build_system_prompt(context, student_name, student_email)
@@ -122,6 +140,48 @@ class ContextHandler:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ]
+    
+    def _build_enhanced_prompt(self, query: str, context: Dict[str, Any], query_type: str, 
+                               student_name: Optional[str], student_email: Optional[str],
+                               retrieved_docs: List[str], conversation_history: List[Dict]) -> List[Dict[str, str]]:
+        """
+        Build enhanced prompt with RAG-retrieved knowledge and conversation history
+        """
+        # Build base system prompt
+        system_prompt = self._build_system_prompt(context, student_name, student_email)
+        
+        # Add retrieved knowledge to system prompt (RAG component)
+        if retrieved_docs:
+            knowledge_section = "\n\n" + "="*60 + "\n"
+            knowledge_section += "RELEVANT KNOWLEDGE BASE (Use this to answer questions):\n"
+            knowledge_section += "="*60 + "\n"
+            for idx, doc in enumerate(retrieved_docs, 1):
+                # Truncate very long documents
+                doc_preview = doc[:500] if len(doc) > 500 else doc
+                knowledge_section += f"\n[Document {idx}]:\n{doc_preview}\n"
+            knowledge_section += "="*60 + "\n"
+            system_prompt += knowledge_section
+            logger.info(f"Added {len(retrieved_docs)} knowledge documents to prompt")
+        
+        # Build user prompt
+        user_prompt = self._build_user_prompt(query, context, query_type)
+        
+        # Construct messages with conversation history
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add last 5 conversation turns (10 messages max) for context
+        if conversation_history:
+            # Ensure history is properly formatted
+            valid_history = [msg for msg in conversation_history 
+                           if isinstance(msg, dict) and 'role' in msg and 'content' in msg]
+            if valid_history:
+                messages.extend(valid_history[-10:])
+                logger.info(f"Added {len(valid_history[-10:])} conversation history messages")
+        
+        # Add current query
+        messages.append({"role": "user", "content": user_prompt})
+        
+        return messages
     
     def _build_system_prompt(self, context: Dict[str, Any], student_name: Optional[str] = None, student_email: Optional[str] = None) -> str:
         """
@@ -356,7 +416,8 @@ Focus: Answer the question using available context.
         available_assessments = context.get('available_assessments', [])
         logger.info(f"ANTI-HALLUCINATION: Found {len(available_assessments)} real assessments in database")
         
-        actual_assessment_names = [a.get('title', '').lower() for a in available_assessments]
+        # Fix: Safely get assessment names, handle None values
+        actual_assessment_names = [(a.get('title') or a.get('name') or '').lower() for a in available_assessments if a.get('title') or a.get('name')]
         
         # Common hallucinated assessment names to remove
         hallucinated_names = [

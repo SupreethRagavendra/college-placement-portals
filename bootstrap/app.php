@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'optimize' => \App\Http\Middleware\OptimizeResponse::class,
             'ensure.session' => \App\Http\Middleware\EnsureSessionWorks::class,
+            'cache.aggressive' => \App\Http\Middleware\AggressiveCaching::class,
         ]);
         
         // Trust proxies for Render deployment

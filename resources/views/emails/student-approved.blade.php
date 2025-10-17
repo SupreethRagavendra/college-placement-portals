@@ -138,19 +138,20 @@
             </div>
             
             <div class="message-box">
-                <p><strong>Your account has been approved for the College Placement Portal!</strong></p>
+                <p><strong>Your account has been approved for the College Placement Training Portal!</strong></p>
                 <div class="status-badge">Status: Approved</div>
-                <p>You can now access the portal and explore placement opportunities.</p>
+                <p>You can now access the portal to enhance your skills and prepare for placements.</p>
             </div>
             
             <div class="next-steps">
                 <h3>🚀 What's Next?</h3>
                 <ul>
-                    <li><strong>Access the Portal:</strong> Log in to explore available opportunities</li>
-                    <li><strong>Complete Your Profile:</strong> Add your skills, experience, and preferences</li>
-                    <li><strong>Browse Companies:</strong> Discover placement opportunities with top companies</li>
-                    <li><strong>Take Assessments:</strong> Practice with skill assessments to improve your profile</li>
-                    <li><strong>Apply for Positions:</strong> Start applying to relevant job openings</li>
+                    <li><strong>Access the Portal:</strong> Log in to your training dashboard</li>
+                    <li><strong>Complete Your Profile:</strong> Add your academic details and skills</li>
+                    <li><strong>Take Assessments:</strong> Practice with skill assessments across various topics</li>
+                    <li><strong>Use AI Chatbot:</strong> Get instant help and guidance from our intelligent assistant</li>
+                    <li><strong>Track Progress:</strong> Monitor your performance and improvement over time</li>
+                    <li><strong>Prepare for Placements:</strong> Build confidence through comprehensive training</li>
                 </ul>
             </div>
             
@@ -161,19 +162,19 @@
             <div class="contact-info">
                 <h4>📞 Need Help?</h4>
                 <p>If you have any questions or need assistance getting started, don't hesitate to reach out:</p>
-                <p><strong>Email:</strong> supreethvennila@gmail.com<br>
+                <p><strong>Support Email:</strong> {{ config('mail.from.address') }}<br>
                 <strong>Support Hours:</strong> Monday - Friday, 9:00 AM - 6:00 PM</p>
             </div>
             
             <p style="margin-top: 30px;">
                 Best regards,<br>
-                <strong>{{ $collegeName }} Team</strong>
+                <strong>{{ $collegeName }} Training Team</strong>
             </p>
         </div>
         
         <div class="footer">
             <p>This is an automated message. Please do not reply directly to this email.</p>
-            <p>For support, contact us at supreethvennila@gmail.com</p>
+            <p>For support, contact us at {{ config('mail.from.address') }}</p>
             <p>© {{ date('Y') }} {{ $collegeName }}. All rights reserved.</p>
         </div>
     </div>

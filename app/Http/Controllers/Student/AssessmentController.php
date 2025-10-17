@@ -20,7 +20,7 @@ class AssessmentController extends Controller
     public function index(Request $request): View
     {
         $query = Assessment::active()
-            ->with('questions') // Eager load questions
+            ->withCount('questions') // Count questions instead of loading all data - much faster
             ->where(function($q) {
                 $q->where('start_date', '<=', now())->orWhereNull('start_date');
             })

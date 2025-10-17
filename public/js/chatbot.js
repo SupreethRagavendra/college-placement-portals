@@ -81,6 +81,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+    
+    // Update status from chat response
+    function updateServiceStatusFromResponse(modelUsed) {
+        if (!statusElement || !statusDot) return;
+        
+        if (modelUsed === 'qwen/qwen-2.5-72b-instruct:free' || modelUsed === 'deepseek/deepseek-v3.1:free') {
+            // RAG Active
+            statusDot.style.backgroundColor = '#10b981';
+            statusElement.innerHTML = `<span class="status-dot" style="background-color: #10b981;"></span> 🟢 RAG Active`;
+            statusElement.style.color = '#10b981';
+        } else if (modelUsed === 'fallback' || modelUsed === 'limited') {
+            // Limited Mode
+            statusDot.style.backgroundColor = '#f59e0b';
+            statusElement.innerHTML = `<span class="status-dot" style="background-color: #f59e0b;"></span> 🟡 Limited Mode`;
+            statusElement.style.color = '#f59e0b';
+        } else {
+            // Offline/Error
+            statusDot.style.backgroundColor = '#ef4444';
+            statusElement.innerHTML = `<span class="status-dot" style="background-color: #ef4444;"></span> 🔴 Offline`;
+            statusElement.style.color = '#ef4444';
+        }
+    }
 
     // Toggle chat window
     toggleBtn.addEventListener('click', function() {
@@ -192,61 +214,47 @@ document.addEventListener('DOMContentLoaded', function() {
                     responseText = "I apologize, but I'm having trouble generating a response. Please try asking your question again.";
                 }
                 
-                // Add RAG service status indicator
-                let statusInfo = '';
-                let ragStatus = data.rag_status || data.model_used || 'unknown';
+                // Get model used from response
+                const modelUsed = data.model_used || data.rag_status || 'unknown';
+                
+                // Build status indicator
                 const statusEmoji = {
                     'qwen/qwen-2.5-72b-instruct:free': '🟢',
-                    'deepseek/deepseek-v3.1:free': '🟡', 
-                    'fallback': '🟠',
+                    'deepseek/deepseek-v3.1:free': '🟢', 
+                    'fallback': '🟡',
+                    'limited': '🟡',
                     'offline': '🔴',
-                    'operational': '🟢',
-                    'degraded': '🟡',
                     'error': '🔴'
-                }[ragStatus] || '⚪';
+                }[modelUsed] || '⚪';
                 
                 const statusText = {
-                    'qwen/qwen-2.5-72b-instruct:free': 'RAG Active',
-                    'deepseek/deepseek-v3.1:free': 'RAG Fallback',
-                    'fallback': 'Database Only',
-                    'offline': 'Offline Mode',
-                    'operational': 'RAG Active',
-                    'degraded': 'Limited Mode',
-                    'error': 'Error Mode'
-                }[ragStatus] || 'Unknown';
+                    'qwen/qwen-2.5-72b-instruct:free': 'Qwen AI',
+                    'deepseek/deepseek-v3.1:free': 'DeepSeek AI',
+                    'fallback': 'Database',
+                    'limited': 'Limited',
+                    'offline': 'Offline',
+                    'error': 'Error'
+                }[modelUsed] || modelUsed;
                 
-                statusInfo = ` ${statusEmoji}`;
+                // Prepare service info object with updated model indicator
+                const serviceInfo = {
+                    indicator: `${statusEmoji} ${statusText}`
+                };
                 
-                // Add debug info if enabled
-                let debugInfo = '';
-                if (localStorage.getItem('chatbot_debug') === 'true') {
-                    const fallbackUsed = data.data?.fallback_used || data.model_used || 'rag';
-                    const modeText = {
-                        'qwen/qwen-2.5-72b-instruct:free': 'OpenRouter (Qwen)',
-                        'deepseek/deepseek-v3.1:free': 'OpenRouter (DeepSeek)',
-                        'openrouter_ai': 'OpenRouter AI',
-                        'chromadb': 'Knowledge Base',
-                        'context_based': 'Context',
-                        'hardcoded': 'Offline',
-                        'final': 'Emergency',
-                        'fallback': 'Fallback'
-                    }[fallbackUsed] || fallbackUsed;
-                    
-                    debugInfo = `<br><small style="opacity: 0.6">[${modeText} - ${statusText}${statusInfo}]</small>`;
-                }
+                // Update header status to match current model
+                updateServiceStatusFromResponse(modelUsed);
                 
-                // Add message with typing animation (with service info)
-                const serviceInfo = data.service_info || null;
-                addMessageWithTyping(responseText, debugInfo, 'bot', serviceInfo);
+                // Add message directly (no typing animation)
+                addMessageDirect(responseText, '', 'bot', serviceInfo);
                 
-                // Show action buttons if provided after typing completes
+                // Show action buttons immediately
                 if (data.actions && data.actions.length > 0) {
-                    setTimeout(() => addActionButtons(data.actions), Math.min(responseText.length * 10, 2000));
+                    addActionButtons(data.actions);
                 }
                 
-                // Show follow-up questions if provided
+                // Show follow-up questions immediately
                 if (data.follow_up_questions && data.follow_up_questions.length > 0) {
-                    setTimeout(() => addFollowUpQuestions(data.follow_up_questions), Math.min(responseText.length * 10 + 500, 2500));
+                    addFollowUpQuestions(data.follow_up_questions);
                 }
             } else {
                 // API error - check if it's authentication or other error
@@ -440,8 +448,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return formatted.join('');
     }
     
-    // Add message with typing animation
-    function addMessageWithTyping(text, debugInfo = '', sender, serviceInfo = null) {
+    // Add message directly (no typing animation)
+    function addMessageDirect(text, debugInfo = '', sender, serviceInfo = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}-message`;
         messageDiv.style.animationDelay = '0s';
@@ -457,10 +465,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const bubbleDiv = document.createElement('div');
         bubbleDiv.className = 'message-bubble';
         
-        // Add status indicator if available
+        // Format the message text
+        const formattedText = formatMarkdown(text);
+        bubbleDiv.innerHTML = formattedText + debugInfo;
+        
+        // Build model/status indicator
         let statusIndicator = '';
         if (serviceInfo && serviceInfo.indicator) {
-            statusIndicator = `<span class="status-indicator" style="display: inline-block; margin-left: 8px; font-size: 12px; opacity: 0.7;">${serviceInfo.indicator}</span>`;
+            statusIndicator = `<span class="status-indicator" style="display: inline-block; margin-left: 8px; font-size: 11px; opacity: 0.8;">${serviceInfo.indicator}</span>`;
         }
         
         const timeSpan = document.createElement('span');
@@ -492,43 +504,12 @@ document.addEventListener('DOMContentLoaded', function() {
         messagesArea.appendChild(messageDiv);
         messagesArea.scrollTop = messagesArea.scrollHeight;
         messageCount++;
-        
-        // Typing animation
-        let index = 0;
-        const formattedText = formatMarkdown(text);
-        
-        // Extract plain text for typing animation
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = formattedText;
-        const fullText = (tempDiv.textContent || tempDiv.innerText || text).trim();
-        
-        // If text extraction failed or is empty, show formatted immediately
-        if (!fullText || fullText.length === 0) {
-            bubbleDiv.innerHTML = formattedText + debugInfo;
-            messagesArea.scrollTop = messagesArea.scrollHeight;
-            return;
-        }
-        
-        // Show typing indicator briefly
-        bubbleDiv.innerHTML = '<span class="typing-text"></span>';
-        const typingSpan = bubbleDiv.querySelector('.typing-text');
-        
-        const typingSpeed = 15; // milliseconds per character
-        
-        function typeNextChar() {
-            if (index < fullText.length) {
-                typingSpan.textContent = fullText.substring(0, index + 1);
-                index++;
-                messagesArea.scrollTop = messagesArea.scrollHeight;
-                setTimeout(typeNextChar, typingSpeed);
-            } else {
-                // Typing complete, show formatted HTML
-                bubbleDiv.innerHTML = formattedText + debugInfo;
-                messagesArea.scrollTop = messagesArea.scrollHeight;
-            }
-        }
-        
-        setTimeout(typeNextChar, 100);
+    }
+    
+    // Keep typing function for backward compatibility
+    function addMessageWithTyping(text, debugInfo = '', sender, serviceInfo = null) {
+        // Just call the direct version now
+        addMessageDirect(text, debugInfo, sender, serviceInfo);
     }
     
     // Add message to chat (for user messages, instant)
@@ -894,8 +875,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Test formatting button
         const testBtn = testPanel.querySelector('#test-formatting');
         testBtn.addEventListener('click', function() {
-            const testMessage = "Hi there! 👋 i'm your placement assistant. I can help you with: •viewing available assessments •checking your results •taking tests •portal navigation you have 1 assessment ready to take. Would you like to see it? –the available assessment is test3567. –it is categorized as aptitude. –the assessment has a duration of 30 minutes. –the pass percentage for this assessment is 50%. –the difficulty level is easy. Total available: 1 assessment please let me know how i can assist you further.";
-            addMessageWithTyping(testMessage, '<br><small style="opacity: 0.6">[Test Message - Fixed Formatting]</small>', 'bot');
+            const testMessage = "Hi there! 👋 I'm your placement assistant.\n\nI can help you with:\n• Viewing available assessments\n• Checking your results\n• Taking tests\n• Portal navigation\n\nYou have **1 assessment** ready to take. Would you like to see it?\n\n📝 **Aptitude Assessment**\n– Duration: 30 minutes\n– Pass percentage: 50%\n– Difficulty: Easy\n\nPlease let me know how I can assist you further!";
+            addMessageDirect(testMessage, '', 'bot', {indicator: '🟢 Test Mode'});
         });
         
         // Mode switcher event listeners

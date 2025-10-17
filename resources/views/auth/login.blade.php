@@ -4,120 +4,223 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login - College Placement Portal</title>
+    <title>Login - KIT Placement Training Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
+        :root {
+            --primary-red: #DC143C;
+            --dark-red: #B91C1C;
+            --light-red: #EF4444;
+            --black: #1A1A1A;
+            --dark-gray: #2D2D2D;
+            --white: #FFFFFF;
+            --light-gray: #F5F5F5;
+            --text-dark: #333333;
+            --accent-red: #FF0000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Figtree', sans-serif;
+            background: linear-gradient(135deg, var(--black) 0%, var(--dark-gray) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
+            color: var(--text-dark);
         }
+
         .auth-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
+            border: 1px solid rgba(220, 20, 60, 0.1);
         }
+
         .auth-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+            color: var(--white);
+            padding: 3rem 2rem;
             text-align: center;
+            position: relative;
         }
+
+        .auth-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="1" fill="white" opacity="0.1"/><circle cx="80" cy="80" r="1" fill="white" opacity="0.1"/><circle cx="40" cy="60" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.1;
+        }
+
+        .auth-header h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-header .brand-logo {
+            width: 80px;
+            height: 80px;
+            background: var(--white);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2rem;
+            color: var(--primary-red);
+            position: relative;
+            z-index: 1;
+        }
+
         .auth-body {
-            padding: 2rem;
+            padding: 3rem 2rem;
+            background: var(--white);
         }
+
         .form-control {
             border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 12px 15px;
+            border-radius: 15px;
+            padding: 15px 20px;
             font-size: 16px;
             transition: all 0.3s ease;
+            background: var(--light-gray);
+            font-family: 'Figtree', sans-serif;
         }
+
         .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: var(--primary-red);
+            box-shadow: 0 0 0 0.2rem rgba(220, 20, 60, 0.25);
+            background: var(--white);
         }
+
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
             border: none;
-            border-radius: 10px;
-            padding: 12px 30px;
+            border-radius: 50px;
+            padding: 15px 40px;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(220, 20, 60, 0.3);
         }
+
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, var(--dark-red) 0%, var(--primary-red) 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(220, 20, 60, 0.5);
         }
+
         .form-label {
             font-weight: 600;
-            color: #495057;
-            margin-bottom: 8px;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            font-size: 0.95rem;
         }
+
         .text-danger {
             font-size: 14px;
-            margin-top: 5px;
+            margin-top: 8px;
+            color: var(--primary-red);
         }
+
         .auth-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .auth-link:hover {
-            color: #764ba2;
-            text-decoration: underline;
-        }
-        .back-to-home {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
+            color: var(--primary-red);
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s ease;
         }
+
+        .auth-link:hover {
+            color: var(--dark-red);
+            text-decoration: none;
+        }
+
+        .back-to-home {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+        }
+
         .back-to-home:hover {
-            color: #f8f9fa;
+            color: var(--white);
+            background: rgba(255, 255, 255, 0.2);
             transform: translateX(-5px);
         }
+
         .form-check-input:checked {
-            background-color: #667eea;
-            border-color: #667eea;
+            background-color: var(--primary-red);
+            border-color: var(--primary-red);
         }
+
         .form-check-input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: var(--primary-red);
+            box-shadow: 0 0 0 0.2rem rgba(220, 20, 60, 0.25);
         }
+
         .alert {
-            border-radius: 10px;
+            border-radius: 15px;
             border: none;
+            padding: 15px 20px;
         }
+
         .alert-success {
             background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
             color: #155724;
+            border-left: 4px solid #28a745;
         }
-        .demo-credentials {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-left: 4px solid #2196f3;
+
+        .form-check-label {
+            color: var(--text-dark);
+            font-weight: 500;
         }
-        .demo-credentials h6 {
-            color: #1976d2;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        .demo-credentials p {
-            margin: 0;
-            font-size: 14px;
-            color: #1565c0;
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .auth-header {
+                padding: 2rem 1.5rem;
+            }
+            
+            .auth-body {
+                padding: 2rem 1.5rem;
+            }
+            
+            .back-to-home {
+                top: 15px;
+                left: 15px;
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -131,18 +234,13 @@
             <div class="col-md-6 col-lg-5">
                 <div class="auth-card">
                     <div class="auth-header">
-                        <i class="fas fa-sign-in-alt fa-3x mb-3"></i>
+                        <div class="brand-logo">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
                         <h2 class="mb-0">Welcome Back</h2>
-                        <p class="mb-0">Sign in to your account</p>
+                        <p class="mb-0">KIT Placement Training Portal</p>
                     </div>
                     <div class="auth-body">
-                        <!-- Demo Credentials -->
-                        <div class="demo-credentials">
-                            <h6><i class="fas fa-info-circle me-2"></i>Demo Credentials</h6>
-                            <p><strong>Admin:</strong> admin@portal.com / Admin@123</p>
-                            <p><strong>Student:</strong> Register a new account</p>
-                        </div>
-
                         <!-- Session Status -->
                         @if (session('status'))
                             <div class="alert alert-success" role="alert">
@@ -214,14 +312,14 @@
                                 @if (Route::has('password.request'))
                                     <p class="mb-2">
                                         <a href="{{ route('password.request') }}" class="auth-link">
-                                            <i class="fas fa-key me-1"></i>Forgot your password?
+                                            <i class="fas fa-unlock-alt me-1"></i>Forgot your password?
                                         </a>
                                     </p>
                                 @endif
                                 <p class="mb-0">
-                                    Don't have an account? 
+                                    New to KIT Training Portal? 
                                     <a href="{{ route('register') }}" class="auth-link">
-                                        <i class="fas fa-user-plus me-1"></i>Register as Student
+                                        <i class="fas fa-user-graduate me-1"></i>Register for Training
                                     </a>
                                 </p>
                             </div>
@@ -233,5 +331,34 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Prevent 419 CSRF token errors
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    // Get the latest CSRF token from the meta tag
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                    const csrfInput = loginForm.querySelector('input[name="_token"]');
+                    
+                    if (csrfToken && csrfInput) {
+                        csrfInput.value = csrfToken.content;
+                    }
+                });
+            }
+            
+            // Reload page if it's been open too long (prevent stale tokens)
+            let pageLoadTime = Date.now();
+            setInterval(function() {
+                let timeSinceLoad = (Date.now() - pageLoadTime) / 1000 / 60; // in minutes
+                if (timeSinceLoad > 60) { // If page open for more than 1 hour
+                    console.log('Page has been open too long, refreshing to prevent token expiry...');
+                    location.reload();
+                }
+            }, 60000); // Check every minute
+        });
+    </script>
 </body>
 </html>

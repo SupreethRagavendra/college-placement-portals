@@ -4,48 +4,158 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Student') - College Placement Portal</title>
+    <title>@yield('title', 'Student') - KIT Training Portal</title>
+    
+    <!-- Preload Critical Resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Fonts with font-display swap -->
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome 6.5.2 - Deferred -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all';this.onload=null;">
+    
     <style>
-        .sidebar { 
-            min-height: 100vh; 
-            background: linear-gradient(160deg, #667eea 0%, #764ba2 50%, #5f4aa8 100%); 
+        :root {
+            --primary-red: #DC143C;
+            --dark-red: #B91C1C;
+            --light-red: #EF4444;
+            --black: #1A1A1A;
+            --dark-gray: #2D2D2D;
+            --white: #FFFFFF;
+            --light-gray: #F5F5F5;
+            --text-dark: #333333;
+            --accent-red: #FF0000;
         }
-        .sidebar .nav-link { 
-            color: rgba(255, 255, 255, 0.9); 
-            padding: 12px 20px; 
-            border-radius: 8px; 
-            margin: 5px 0; 
-            transition: transform .2s ease, background-color .2s ease, color .2s ease; 
+        
+        * {
+            font-family: 'Figtree', sans-serif;
         }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active { 
-            color: #fff; 
-            background-color: rgba(255,255,255,.15); 
-            transform: translateX(4px); 
+        
+        body {
+            background: #f8f9fa;
+            margin: 0;
+            padding: 0;
         }
-        .main-content { 
-            background-color: #f8f9fa; 
-            min-height: 100vh; 
+        
+        /* Sidebar Styles - Red & Black Theme */
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, var(--black) 0%, var(--dark-gray) 100%);
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
         }
-        .card { 
-            border: none; 
-            box-shadow: 0 8px 20px rgba(31, 38, 135, 0.08); 
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.9);
+            padding: 14px 20px;
+            border-radius: 12px;
+            margin: 6px 0;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+        
+        .sidebar .nav-link:hover {
+            color: white;
+            background: rgba(220, 20, 60, 0.2);
+            transform: translateX(6px);
+        }
+        
+        .sidebar .nav-link.active {
+            color: white;
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+            box-shadow: 0 4px 15px rgba(220, 20, 60, 0.3);
+            transform: translateX(6px);
+        }
+        
+        .sidebar h5 {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        
+        .sidebar hr {
+            border-color: rgba(255,255,255,0.15);
+            margin: 15px 0;
+        }
+        
+        .sidebar .logo-container {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+        }
+        
+        .sidebar .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        /* Main Content Area */
+        .main-content {
+            background-color: var(--light-gray);
+            min-height: 100vh;
+        }
+        
+        /* Top Navbar */
+        .navbar {
+            background: white !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 15px 30px;
+            border-bottom: 2px solid var(--light-gray);
+        }
+        
+        .navbar-brand {
+            color: var(--text-dark) !important;
+            font-weight: 700;
+            font-size: 1.3rem;
+        }
+        
+        .navbar-text {
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+        
+        /* Card Styles */
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        
+        /* Content Container */
+        .content-container {
+            padding: 30px;
         }
     </style>
     @stack('head')
     @yield('styles')
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
+            <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 px-0">
                 <div class="sidebar">
-                    <div class="p-3">
+                    <div class="p-4">
                         <div class="d-flex align-items-center mb-4">
-                            <img src="{{ asset('css/logo1-removebg-preview.png') }}" alt="College Logo" style="height: 50px; width: 50px; object-fit: contain; background: white; border-radius: 50%; padding: 5px; margin-right: 12px;">
-                            <h5 class="text-white mb-0">Student Portal</h5>
+                            <div class="logo-container me-3">
+                                <img src="{{ asset('css/logo1-removebg-preview.png') }}" alt="KIT Logo" loading="lazy">
+                            </div>
+                            <h5 class="text-white mb-0" style="font-size: 1.1rem;">Student Portal</h5>
                         </div>
                         <nav class="nav flex-column">
                             <a class="nav-link {{ request()->routeIs('student.dashboard') ? 'active' : '' }}" href="{{ route('student.dashboard') }}">
@@ -77,32 +187,34 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Main Content -->
             <div class="col-md-9 col-lg-10 px-0">
                 <div class="main-content">
+                    <!-- Top Navbar -->
                     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
                         <div class="container-fluid">
-                            <h5 class="navbar-brand mb-0">@yield('title', 'Student')</h5>
+                            <h5 class="navbar-brand mb-0">@yield('title', 'Student Portal')</h5>
+                            
                             <div class="navbar-nav ms-auto">
-                                <span class="navbar-text me-3">Welcome, {{ Auth::user()->name ?? 'Student' }}!</span>
+                                <span class="navbar-text me-3">
+                                    Welcome, <strong>{{ Auth::user()->name ?? 'Student' }}</strong>!
+                                </span>
                             </div>
                         </div>
                     </nav>
+                    
+                    <!-- Content Container -->
                     <div class="container-fluid p-4">
                         @if(session('success'))
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <div class="alert alert-success alert-dismissible fade show" role="alert" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border: none; border-left: 4px solid #28a745; border-radius: 10px; color: #155724; font-weight: 500;">
                                 <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
                         @endif
                         @if(session('error'))
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert" style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); border: none; border-left: 4px solid var(--primary-red); border-radius: 10px; color: #721c24; font-weight: 500;">
                                 <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        @endif
-                        @if(session('status'))
-                            <div class="alert alert-info alert-dismissible fade show" role="alert">
-                                <i class="fas fa-info-circle me-2"></i>{{ session('status') }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
                         @endif
@@ -113,15 +225,11 @@
             </div>
         </div>
     </div>
+    
     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">@csrf</form>
     
-    <!-- Include Student Chatbot Component -->
-    @include('components.student-chatbot')
-    
-    <!-- Chatbot Debug Helper (only in local environment) -->
-    @if(app()->environment('local'))
-        <script src="{{ asset('js/chatbot-debug.js') }}"></script>
-    @endif
+    <!-- Student Chatbot Component -->
+    <x-student-chatbot />
     
     @stack('scripts')
     @yield('scripts')

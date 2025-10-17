@@ -23,7 +23,7 @@
             <div class="card-body">
                 <p><strong>Name:</strong> {{ $studentAssessment->student->name }}</p>
                 <p><strong>Email:</strong> {{ $studentAssessment->student->email }}</p>
-                <p class="mb-0"><strong>Student ID:</strong> #{{ $studentAssessment->student->id }}</p>
+                <p class="mb-0"><strong>Register No:</strong> {{ $studentAssessment->student->register_number ?? 'N/A' }}</p>
             </div>
         </div>
     </div>

@@ -122,6 +122,7 @@ Route::get('/dashboard', function () {
 // Admin routes
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('/dashboard/stats', [\App\Http\Controllers\Admin\DashboardDataController::class, 'getStats'])->name('admin.dashboard.stats');
 
     // Student verification
     Route::get('/students/pending', [AdminStudentController::class, 'pending'])->name('admin.pending-students');

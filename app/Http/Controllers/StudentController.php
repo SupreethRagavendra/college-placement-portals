@@ -24,18 +24,18 @@ class StudentController extends Controller
     {
         $userId = Auth::id();
         
-        // Cache assessments for 2 minutes - they don't change frequently
-        $assessments = Cache::remember('student_assessments_list', 120, function() {
+        // Cache assessments for 10 minutes - AGGRESSIVE CACHING for speed
+        $assessments = Cache::remember('student_assessments_list', 600, function() {
             return \App\Models\Assessment::active()
                 ->withCount('questions')
-                ->select('id', 'name', 'category', 'total_time', 'difficulty_level', 'created_at')
+                ->select('id', 'title', 'name', 'description', 'category', 'total_time', 'difficulty_level', 'total_marks', 'pass_percentage', 'created_at')
                 ->orderBy('created_at', 'desc')
                 ->limit(6)
                 ->get();
         });
 
-        // Cache user results for 1 minute - personalized data
-        $userResults = Cache::remember("student_results_{$userId}", 60, function() use ($userId) {
+        // Cache user results for 5 minutes - AGGRESSIVE CACHING for speed
+        $userResults = Cache::remember("student_results_{$userId}", 300, function() use ($userId) {
             return \App\Models\StudentResult::where('student_id', $userId)
                 ->with('assessment:id,name,category')
                 ->select('id', 'student_id', 'assessment_id', 'score', 'total_questions', 'time_taken', 'submitted_at')

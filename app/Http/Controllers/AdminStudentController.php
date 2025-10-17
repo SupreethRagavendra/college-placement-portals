@@ -76,7 +76,20 @@ class AdminStudentController extends Controller
             Cache::forget('admin_recent_approvals');
             
             // Send approval email asynchronously (non-blocking)
+            \Log::info("ADMIN APPROVAL: About to send email", [
+                'student_id' => $student->id,
+                'student_email' => $student->email,
+                'student_name' => $student->name,
+                'timestamp' => now()
+            ]);
+            
             $this->sendStatusEmailAsync($student, 'approved');
+            
+            \Log::info("ADMIN APPROVAL: Email sending initiated", [
+                'student_id' => $student->id,
+                'student_email' => $student->email,
+                'timestamp' => now()
+            ]);
             
             if (request()->ajax()) {
                 return response()->json(['success' => "Student {$studentName} has been approved."]);
@@ -129,7 +142,21 @@ class AdminStudentController extends Controller
             Cache::forget('admin_pending_students');
             
             // Send rejection email asynchronously (non-blocking)
+            \Log::info("ADMIN REJECTION: About to send email", [
+                'student_id' => $student->id,
+                'student_email' => $student->email,
+                'student_name' => $student->name,
+                'rejection_reason' => $request->rejection_reason,
+                'timestamp' => now()
+            ]);
+            
             $this->sendStatusEmailAsync($student, 'rejected', $request->rejection_reason);
+            
+            \Log::info("ADMIN REJECTION: Email sending initiated", [
+                'student_id' => $student->id,
+                'student_email' => $student->email,
+                'timestamp' => now()
+            ]);
             
             return back()->with('status', "Student {$studentName} has been rejected.");
         } catch (\Exception $e) {

@@ -1,12 +1,16 @@
 @extends('layouts.admin')
 
-@section('title', 'Pending Students')
+@section('title', 'Pending Students - KIT Training Portal')
+@section('page-title', 'Pending Students Management')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0">Pending Students</h1>
-    <div class="badge bg-warning text-dark fs-6">
-        {{ $students->total() }} pending approval{{ $students->total() !== 1 ? 's' : '' }}
+    <h1 class="h3 mb-0" style="color: var(--text-dark); font-weight: 700;">
+        <i class="fas fa-user-clock me-2" style="color: var(--primary-red);"></i>
+        Pending  Registrations
+    </h1>
+    <div class="badge fs-6" style="background: linear-gradient(135deg, #ffca3a 0%, #f4a600 100%); color: var(--text-dark); padding: 10px 20px; border-radius: 20px; font-weight: 600;">
+        {{ $students->total() }} Pending Approval{{ $students->total() !== 1 ? 's' : '' }}
     </div>
 </div>
 
@@ -24,17 +28,17 @@
     </div>
 @endif
 
-<div class="card shadow-sm">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">
-            <i class="fas fa-clock text-warning me-2"></i>Students Awaiting Approval
+<div class="card shadow-sm" style="border: none; border-radius: 15px; overflow: hidden;">
+    <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); color: white; padding: 20px 25px; border: none;">
+        <h5 class="card-title mb-0" style="font-weight: 700; font-size: 1.2rem;">
+            <i class="fas fa-users-clock me-2"></i>Students Awaiting Approval
         </h5>
         @if($students->count() > 0)
             <div class="btn-group" role="group">
-                <button type="button" class="btn btn-sm btn-outline-success" onclick="selectAll()">
+                <button type="button" class="btn btn-sm" onclick="selectAll()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 6px 15px; border-radius: 8px; font-weight: 500; transition: all 0.3s;">
                     <i class="fas fa-check-square me-1"></i>Select All
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+                <button type="button" class="btn btn-sm ms-2" onclick="clearSelection()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 6px 15px; border-radius: 8px; font-weight: 500; transition: all 0.3s;">
                     <i class="fas fa-square me-1"></i>Clear
                 </button>
             </div>
@@ -63,12 +67,12 @@
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <div class="avatar-sm text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); width: 40px; height: 40px; font-weight: 600; font-size: 16px;">
                                             {{ strtoupper(substr($student->name, 0, 1)) }}
                                         </div>
                                         <div>
-                                            <h6 class="mb-0">{{ $student->name }}</h6>
-                                            <small class="text-muted">Student</small>
+                                            <h6 class="mb-0" style="font-weight: 600; color: var(--text-dark);">{{ $student->name }}</h6>
+                                            <small class="text-muted">Training Portal Student</small>
                                         </div>
                                     </div>
                                 </td>
@@ -91,12 +95,12 @@
                                     <div class="btn-group btn-group-sm" role="group">
                                         <form action="{{ route('admin.approve-student', $student->id) }}" method="POST" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="btn btn-success" title="Approve Student" onclick="return confirm('Are you sure you want to approve {{ $student->name }}?')">
+                                            <button type="submit" class="btn btn-sm" title="Approve Student" onclick="return confirm('Are you sure you want to approve {{ $student->name }} for the training portal?')" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; transition: all 0.3s;">
                                                 <i class="fas fa-check me-1"></i>Approve
                                             </button>
                                         </form>
-                                        <button type="button" class="btn btn-danger" title="Reject Student" 
-                                                onclick="openRejectModal({{ $student->id }}, '{{ $student->name }}', '{{ $student->email }}')">
+                                        <button type="button" class="btn btn-sm ms-2" title="Reject Student" 
+                                                onclick="openRejectModal({{ $student->id }}, '{{ $student->name }}', '{{ $student->email }}')" style="background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; transition: all 0.3s;">
                                             <i class="fas fa-times me-1"></i>Reject
                                         </button>
                                     </div>
@@ -107,17 +111,19 @@
                 </table>
             </div>
             @if($students->count() > 1)
-                <div class="card-footer bg-light">
+                <div class="card-footer" style="background: #f8f9fa; padding: 20px 25px; border-top: 2px solid #e9ecef;">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-muted">Selected: <span id="selectedCount">0</span> students</span>
+                            <span style="color: var(--text-dark); font-weight: 600;">
+                                Selected: <span id="selectedCount" style="color: var(--primary-red); font-size: 1.1rem;">0</span> students
+                            </span>
                         </div>
                         <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-success" id="bulkApproveBtn" disabled onclick="bulkApprove()">
-                                <i class="fas fa-check me-1"></i>Approve Selected
+                            <button type="button" class="btn" id="bulkApproveBtn" disabled onclick="bulkApprove()" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; transition: all 0.3s; margin-right: 10px;">
+                                <i class="fas fa-check me-2"></i>Approve Selected
                             </button>
-                            <button type="button" class="btn btn-danger" id="bulkRejectBtn" disabled onclick="bulkReject()">
-                                <i class="fas fa-times me-1"></i>Reject Selected
+                            <button type="button" class="btn" id="bulkRejectBtn" disabled onclick="bulkReject()" style="background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; transition: all 0.3s;">
+                                <i class="fas fa-times me-2"></i>Reject Selected
                             </button>
                         </div>
                     </div>
@@ -125,10 +131,10 @@
             @endif
         @else
             <div class="text-center py-5">
-                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                <h5>No Pending Students</h5>
-                <p class="text-muted">All students have been processed! New registrations will appear here.</p>
-                <a href="{{ route('admin.dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-check-circle fa-3x mb-3" style="color: #28a745;"></i>
+                <h5 style="color: var(--text-dark); font-weight: 700; margin-top: 20px;">No Pending Students</h5>
+                <p class="text-muted" style="font-size: 1rem;">All students have been processed! New training portal registrations will appear here.</p>
+                <a href="{{ route('admin.dashboard') }}" class="btn mt-3" style="background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); color: white; border: none; padding: 12px 30px; border-radius: 50px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.3s;">
                     <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
                 </a>
             </div>
@@ -146,12 +152,12 @@
 <!-- Rejection Modal -->
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content" style="border-radius: 15px; overflow: hidden; border: none;">
             <form id="rejectForm" method="POST">
                 @csrf
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="rejectModalLabel">
-                        <i class="fas fa-exclamation-triangle me-2"></i>Reject Student
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); border: none; padding: 20px 25px;">
+                    <h5 class="modal-title" id="rejectModalLabel" style="font-weight: 700;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Reject Training Portal Registration
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -190,11 +196,11 @@
                         </label>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <div class="modal-footer" style="border-top: 1px solid #e9ecef; padding: 20px 25px;">
+                    <button type="button" class="btn" data-bs-dismiss="modal" style="background: #6c757d; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; transition: all 0.3s;">
                         <i class="fas fa-times me-1"></i>Cancel
                     </button>
-                    <button type="submit" class="btn btn-danger">
+                    <button type="submit" class="btn" style="background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; transition: all 0.3s;">
                         <i class="fas fa-ban me-1"></i>Reject Student
                     </button>
                 </div>
@@ -215,30 +221,128 @@
 
 @push('scripts')
 <style>
+:root {
+    --primary-red: #DC143C;
+    --dark-red: #B91C1C;
+    --light-red: #EF4444;
+    --black: #1A1A1A;
+    --dark-gray: #2D2D2D;
+    --white: #FFFFFF;
+    --light-gray: #F5F5F5;
+    --text-dark: #333333;
+    --accent-red: #FF0000;
+}
+
 .avatar-sm {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .table th {
     border-top: none;
-    font-weight: 600;
-    color: #6c757d;
+    font-weight: 700;
+    color: var(--text-dark);
     background-color: #f8f9fa;
+    padding: 15px 12px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table tbody tr {
+    transition: all 0.2s ease;
 }
 
 .table tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
+    background-color: rgba(220, 20, 60, 0.05) !important;
 }
 
 .btn-group .btn {
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
 .btn-group .btn:not(:last-child) {
     margin-right: 4px;
+}
+
+/* Button hover effects */
+button[onclick*="selectAll"]:hover,
+button[onclick*="clearSelection"]:hover {
+    background: rgba(255,255,255,0.35) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+button[onclick*="bulkApprove"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+button[onclick*="bulkReject"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(220, 20, 60, 0.4);
+}
+
+button[title*="Approve"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+}
+
+button[title*="Reject"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(220, 20, 60, 0.4);
+}
+
+#bulkApproveBtn:disabled,
+#bulkRejectBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-red);
+    border-color: var(--primary-red);
+}
+
+.form-check-input:focus {
+    border-color: var(--primary-red);
+    box-shadow: 0 0 0 0.2rem rgba(220, 20, 60, 0.25);
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border: none;
+    border-left: 4px solid #28a745;
+    border-radius: 10px;
+    color: #155724;
+    font-weight: 500;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    border: none;
+    border-left: 4px solid var(--primary-red);
+    border-radius: 10px;
+    color: #721c24;
+    font-weight: 500;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
+    border: none;
+    border-left: 4px solid #ffca3a;
+    border-radius: 10px;
+    color: #856404;
+    font-weight: 500;
+}
+
+.form-check-label.text-danger {
+    color: var(--primary-red) !important;
+    font-weight: 600;
 }
 </style>
 
